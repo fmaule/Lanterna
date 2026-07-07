@@ -2,12 +2,12 @@ import Foundation
 
 @MainActor
 class ToolCallRouter {
-  private let bridge: OpenClawBridge
+  private let bridge: HermesBridge
   private var inFlightTasks: [String: Task<Void, Never>] = [:]
   private var consecutiveFailures = 0
   private let maxConsecutiveFailures = 3
 
-  init(bridge: OpenClawBridge) {
+  init(bridge: HermesBridge) {
     self.bridge = bridge
   }
 
@@ -29,7 +29,7 @@ class ToolCallRouter {
             consecutiveFailures, callId)
       let errorResult: ToolResult = .failure(
         "Tool execution is temporarily unavailable after \(consecutiveFailures) consecutive failures. " +
-        "Please tell the user you cannot complete this action right now and suggest they check their OpenClaw gateway connection."
+        "Please tell the user you cannot complete this action right now and suggest they check their Hermes connection."
       )
       let response = buildToolResponse(callId: callId, name: callName, result: errorResult)
       sendResponse(response)

@@ -10,9 +10,9 @@ class GeminiSessionViewModel: ObservableObject {
   @Published var userTranscript: String = ""
   @Published var aiTranscript: String = ""
   @Published var toolCallStatus: ToolCallStatus = .idle
-  @Published var openClawConnectionState: OpenClawConnectionState = .notConfigured
+  @Published var hermesConnectionState: HermesConnectionState = .notConfigured
   private let geminiService = GeminiLiveService()
-  private let openClawBridge = OpenClawBridge()
+  private let hermesBridge = HermesBridge()
   private var toolCallRouter: ToolCallRouter?
   private let audioManager = AudioManager()
   private let eventClient = OpenClawEventClient()
@@ -84,12 +84,12 @@ class GeminiSessionViewModel: ObservableObject {
       }
     }
 
-    // Check OpenClaw connectivity and start fresh session
-    await openClawBridge.checkConnection()
-    openClawBridge.resetSession()
+    // Check Hermes connectivity and start fresh session
+    await hermesBridge.checkConnection()
+    hermesBridge.resetSession()
 
     // Wire tool call handling
-    toolCallRouter = ToolCallRouter(bridge: openClawBridge)
+    toolCallRouter = ToolCallRouter(bridge: hermesBridge)
 
     geminiService.onToolCall = { [weak self] toolCall in
       guard let self else { return }
@@ -117,8 +117,8 @@ class GeminiSessionViewModel: ObservableObject {
         guard !Task.isCancelled else { break }
         self.connectionState = self.geminiService.connectionState
         self.isModelSpeaking = self.geminiService.isModelSpeaking
-        self.toolCallStatus = self.openClawBridge.lastToolCallStatus
-        self.openClawConnectionState = self.openClawBridge.connectionState
+        self.toolCallStatus = self.hermesBridge.lastToolCallStatus
+        self.hermesConnectionState = self.hermesBridge.connectionState
       }
     }
 

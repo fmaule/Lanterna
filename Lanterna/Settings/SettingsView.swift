@@ -9,6 +9,9 @@ struct SettingsView: View {
   @State private var openClawPort: String = ""
   @State private var openClawHookToken: String = ""
   @State private var openClawGatewayToken: String = ""
+  @State private var hermesBaseURL: String = ""
+  @State private var hermesBearerToken: String = ""
+  @State private var hermesSessionKey: String = ""
   @State private var geminiSystemPrompt: String = ""
   @State private var webrtcSignalingURL: String = ""
   @State private var speakerOutputEnabled: Bool = false
@@ -73,6 +76,39 @@ struct SettingsView: View {
               .font(.caption)
               .foregroundColor(.secondary)
             TextField("Gateway auth token", text: $openClawGatewayToken)
+              .autocapitalization(.none)
+              .disableAutocorrection(true)
+              .font(.system(.body, design: .monospaced))
+          }
+        }
+
+        Section(header: Text("Hermes"), footer: Text("Alternative HTTP agent backend. Base URL must include scheme and port.")) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Base URL")
+              .font(.caption)
+              .foregroundColor(.secondary)
+            TextField("http://host.example.ts.net:8642", text: $hermesBaseURL)
+              .autocapitalization(.none)
+              .disableAutocorrection(true)
+              .keyboardType(.URL)
+              .font(.system(.body, design: .monospaced))
+          }
+
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Bearer Token")
+              .font(.caption)
+              .foregroundColor(.secondary)
+            TextField("Bearer token", text: $hermesBearerToken)
+              .autocapitalization(.none)
+              .disableAutocorrection(true)
+              .font(.system(.body, design: .monospaced))
+          }
+
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Session Key")
+              .font(.caption)
+              .foregroundColor(.secondary)
+            TextField("agent:main:glasses:dm:fer", text: $hermesSessionKey)
               .autocapitalization(.none)
               .disableAutocorrection(true)
               .font(.system(.body, design: .monospaced))
@@ -149,6 +185,9 @@ struct SettingsView: View {
     openClawPort = String(settings.openClawPort)
     openClawHookToken = settings.openClawHookToken
     openClawGatewayToken = settings.openClawGatewayToken
+    hermesBaseURL = settings.hermesBaseURL
+    hermesBearerToken = settings.hermesBearerToken
+    hermesSessionKey = settings.hermesSessionKey
     webrtcSignalingURL = settings.webrtcSignalingURL
     speakerOutputEnabled = settings.speakerOutputEnabled
     videoStreamingEnabled = settings.videoStreamingEnabled
@@ -164,6 +203,9 @@ struct SettingsView: View {
     }
     settings.openClawHookToken = openClawHookToken.trimmingCharacters(in: .whitespacesAndNewlines)
     settings.openClawGatewayToken = openClawGatewayToken.trimmingCharacters(in: .whitespacesAndNewlines)
+    settings.hermesBaseURL = hermesBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+    settings.hermesBearerToken = hermesBearerToken.trimmingCharacters(in: .whitespacesAndNewlines)
+    settings.hermesSessionKey = hermesSessionKey.trimmingCharacters(in: .whitespacesAndNewlines)
     settings.webrtcSignalingURL = webrtcSignalingURL.trimmingCharacters(in: .whitespacesAndNewlines)
     settings.speakerOutputEnabled = speakerOutputEnabled
     settings.videoStreamingEnabled = videoStreamingEnabled

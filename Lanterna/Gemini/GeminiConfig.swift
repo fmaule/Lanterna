@@ -48,6 +48,9 @@ enum GeminiConfig {
   static var openClawPort: Int { SettingsManager.shared.openClawPort }
   static var openClawHookToken: String { SettingsManager.shared.openClawHookToken }
   static var openClawGatewayToken: String { SettingsManager.shared.openClawGatewayToken }
+  static var hermesBaseURL: String { SettingsManager.shared.hermesBaseURL }
+  static var hermesBearerToken: String { SettingsManager.shared.hermesBearerToken }
+  static var hermesSessionKey: String { SettingsManager.shared.hermesSessionKey }
 
   static func websocketURL() -> URL? {
     guard apiKey != "YOUR_GEMINI_API_KEY" && !apiKey.isEmpty else { return nil }
@@ -62,5 +65,9 @@ enum GeminiConfig {
     return openClawGatewayToken != "YOUR_OPENCLAW_GATEWAY_TOKEN"
       && !openClawGatewayToken.isEmpty
       && openClawHost != "http://YOUR_MAC_HOSTNAME.local"
+  }
+
+  static var isHermesConfigured: Bool {
+    return !hermesBearerToken.isEmpty && !hermesBaseURL.isEmpty
   }
 }

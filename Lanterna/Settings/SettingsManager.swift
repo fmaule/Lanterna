@@ -10,6 +10,7 @@ final class SettingsManager {
     case geminiAPIKey
     case openClawHookToken
     case openClawGatewayToken
+    case hermesBearerToken
   }
 
   // Keys for non-sensitive settings (stored in UserDefaults)
@@ -21,6 +22,8 @@ final class SettingsManager {
     case speakerOutputEnabled
     case videoStreamingEnabled
     case proactiveNotificationsEnabled
+    case hermesBaseURL
+    case hermesSessionKey
   }
 
   private init() {}
@@ -62,6 +65,23 @@ final class SettingsManager {
     set { KeychainManager.set(SecretKey.openClawGatewayToken.rawValue, value: newValue) }
   }
 
+  // MARK: - Hermes
+
+  var hermesBaseURL: String {
+    get { defaults.string(forKey: Key.hermesBaseURL.rawValue) ?? "" }
+    set { defaults.set(newValue, forKey: Key.hermesBaseURL.rawValue) }
+  }
+
+  var hermesBearerToken: String {
+    get { KeychainManager.get(SecretKey.hermesBearerToken.rawValue) ?? "" }
+    set { KeychainManager.set(SecretKey.hermesBearerToken.rawValue, value: newValue) }
+  }
+
+  var hermesSessionKey: String {
+    get { defaults.string(forKey: Key.hermesSessionKey.rawValue) ?? "" }
+    set { defaults.set(newValue, forKey: Key.hermesSessionKey.rawValue) }
+  }
+
   // MARK: - WebRTC
 
   var webrtcSignalingURL: String {
@@ -96,7 +116,7 @@ final class SettingsManager {
     KeychainManager.deleteAll()
     for key in [Key.geminiSystemPrompt, .openClawHost, .openClawPort,
                 .webrtcSignalingURL, .speakerOutputEnabled, .videoStreamingEnabled,
-                .proactiveNotificationsEnabled] {
+                .proactiveNotificationsEnabled, .hermesBaseURL, .hermesSessionKey] {
       defaults.removeObject(forKey: key.rawValue)
     }
   }

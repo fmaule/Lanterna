@@ -9,7 +9,7 @@ struct GeminiStatusBar: View {
       StatusPill(color: geminiStatusColor, text: geminiStatusText)
 
       // OpenClaw connection pill
-      StatusPill(color: openClawStatusColor, text: openClawStatusText)
+      StatusPill(color: hermesStatusColor, text: hermesStatusText)
     }
   }
 
@@ -31,8 +31,8 @@ struct GeminiStatusBar: View {
     }
   }
 
-  private var openClawStatusColor: Color {
-    switch geminiVM.openClawConnectionState {
+  private var hermesStatusColor: Color {
+    switch geminiVM.hermesConnectionState {
     case .connected: return .green
     case .checking: return .yellow
     case .unreachable: return .red
@@ -40,12 +40,12 @@ struct GeminiStatusBar: View {
     }
   }
 
-  private var openClawStatusText: String {
-    switch geminiVM.openClawConnectionState {
-    case .connected: return "OpenClaw"
-    case .checking: return "OpenClaw..."
-    case .unreachable: return "OpenClaw Off"
-    case .notConfigured: return "No OpenClaw"
+  private var hermesStatusText: String {
+    switch geminiVM.hermesConnectionState {
+    case .connected: return "Hermes"
+    case .checking: return "Hermes..."
+    case .unreachable: return "Hermes Off"
+    case .notConfigured: return "No Hermes"
     }
   }
 }

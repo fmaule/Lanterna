@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2F647E22DBD39BA77757811A /* MWDATCore in Frameworks */ = {isa = PBXBuildFile; productRef = E867400339F14EBB2A0EAE49 /* MWDATCore */; };
 		8F2D23802E856711002D0588 /* DebugMenuViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F2D237F2E856711002D0588 /* DebugMenuViewModel.swift */; };
 		8F8F00782E8ACB4600A4BDAF /* WearablesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F8F00772E8ACB4500A4BDAF /* WearablesViewModel.swift */; };
 		8FD96B7F2E6F0A9800F56AB1 /* LanternaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FD96B792E6F0A9800F56AB1 /* LanternaApp.swift */; };
@@ -17,8 +18,6 @@
 		8FD96B8D2E6F0A9800F56AB1 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 8FD96B772E6F0A9800F56AB1 /* Assets.xcassets */; };
 		8FD96B952E6F0F7D00F56AB1 /* MWDATCore in Frameworks */ = {isa = PBXBuildFile; productRef = 8FD96B942E6F0F7D00F56AB1 /* MWDATCore */; };
 		8FD96B952E6F0F7D00F56AB2 /* MWDATCamera in Frameworks */ = {isa = PBXBuildFile; productRef = 8FD96B942E6F0F7D00F56AB2 /* MWDATCamera */; };
-		2F647E22DBD39BA77757811A /* MWDATCore in Frameworks */ = {isa = PBXBuildFile; productRef = E867400339F14EBB2A0EAE49 /* MWDATCore */; };
-		CBC48BC700A60582CB69D61C /* MWDATMockDevice in Frameworks */ = {isa = PBXBuildFile; productRef = 60D1DDC41F3F6B19391A555E /* MWDATMockDevice */; };
 		8FFD5FF52E8422580035E446 /* CircleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FFD5FF22E8422580035E446 /* CircleButton.swift */; };
 		8FFD5FF62E8422580035E446 /* CustomButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FFD5FF32E8422580035E446 /* CustomButton.swift */; };
 		8FFD602C2E8433E20035E446 /* MockDeviceKitViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FFD60292E8433E20035E446 /* MockDeviceKitViewModel.swift */; };
@@ -48,6 +47,7 @@
 		A1B2C3D42F0A000200000003 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F0A000100000003 /* AudioManager.swift */; };
 		A1B2C3D42F0A000200000004 /* GeminiSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F0A000100000004 /* GeminiSessionViewModel.swift */; };
 		A1B2C3D42F0A000200000005 /* GeminiOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F0A000100000005 /* GeminiOverlayView.swift */; };
+		CBC48BC700A60582CB69D61C /* MWDATMockDevice in Frameworks */ = {isa = PBXBuildFile; productRef = 60D1DDC41F3F6B19391A555E /* MWDATMockDevice */; };
 		E66D30242E7DA71900470B48 /* MockDeviceKitButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = E66D30232E7DA71900470B48 /* MockDeviceKitButton.swift */; };
 		E6A188482EB918740097D0E1 /* StreamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A188472EB918740097D0E1 /* StreamView.swift */; };
 		E6DA451D2E79A63100E3F688 /* MockDeviceCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DA45182E79A63100E3F688 /* MockDeviceCardView.swift */; };
@@ -131,6 +131,7 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		9D3C69602F367CF700E641A5 /* iPhone */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = iPhone; sourceTree = "<group>"; };
 		9D85EB992F35EC46006C44D1 /* OpenClaw */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); name = OpenClaw; path = Lanterna/OpenClaw; sourceTree = SOURCE_ROOT; };
+		9DAE12340001000000000001 /* Hermes */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); name = Hermes; path = Lanterna/Hermes; sourceTree = SOURCE_ROOT; };
 		E699CC962E8150670052C240 /* LanternaTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = LanternaTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -229,6 +230,7 @@
 				8FD96B792E6F0A9800F56AB1 /* LanternaApp.swift */,
 				8FD96B7B2E6F0A9800F56AB1 /* Info.plist */,
 				9D85EB992F35EC46006C44D1 /* OpenClaw */,
+				9DAE12340001000000000001 /* Hermes */,
 			);
 			path = Lanterna;
 			sourceTree = "<group>";
@@ -320,6 +322,7 @@
 			fileSystemSynchronizedGroups = (
 				9D3C69602F367CF700E641A5 /* iPhone */,
 				9D85EB992F35EC46006C44D1 /* OpenClaw */,
+				9DAE12340001000000000001 /* Hermes */,
 			);
 			name = Lanterna;
 			productName = Lanterna;
@@ -766,6 +769,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		60D1DDC41F3F6B19391A555E /* MWDATMockDevice */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 95F7F3332DEF0D91006D1C1A /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
+			productName = MWDATMockDevice;
+		};
 		8FD96B942E6F0F7D00F56AB1 /* MWDATCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 95F7F3332DEF0D91006D1C1A /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
@@ -776,16 +784,6 @@
 			package = 95F7F3332DEF0D91006D1C1A /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
 			productName = MWDATCamera;
 		};
-		E867400339F14EBB2A0EAE49 /* MWDATCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 95F7F3332DEF0D91006D1C1A /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
-			productName = MWDATCore;
-		};
-		60D1DDC41F3F6B19391A555E /* MWDATMockDevice */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 95F7F3332DEF0D91006D1C1A /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
-			productName = MWDATMockDevice;
-		};
 		9DD6CAFD2F3C62DA00ED7098 /* WebRTC */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 9DD6CAFC2F3C62DA00ED7098 /* XCRemoteSwiftPackageReference "WebRTC" */;
@@ -795,6 +793,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 9DD6CB0A2F3C648800ED7098 /* XCRemoteSwiftPackageReference "WebRTC" */;
 			productName = WebRTC;
+		};
+		E867400339F14EBB2A0EAE49 /* MWDATCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 95F7F3332DEF0D91006D1C1A /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
+			productName = MWDATCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
