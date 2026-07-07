@@ -107,7 +107,7 @@ class StreamSessionViewModel: ObservableObject {
 
   private func currentStreamConfiguration() -> StreamConfiguration {
     StreamConfiguration(
-      videoCodec: VideoCodec.raw,
+      videoCodec: VideoCodec.hvc1,
       resolution: selectedResolution,
       frameRate: 24)
   }
