@@ -288,12 +288,42 @@ class StreamSessionViewModel: ObservableObject {
     }
 
     do {
-      let session = try wearables.createSession(deviceSelector: deviceSelector)
-      deviceSession = session
-      attachSessionListeners(session)
-      try session.start()
+      let session: DeviceSession
+      if let existing = deviceSession {
+        session = existing
+      } else {
+        session = try wearables.createSession(deviceSelector: deviceSelector)
+        deviceSession = session
+        attachSessionListeners(session)
+      }
+
+      if session.state == .idle || session.state == .stopped {
+        try session.start()
+      }
+
+      // DeviceSession.start() is synchronous in DAT SDK 0.8 — it only kicks the
+      // state machine (idle → starting → started). addStream() requires the
+      // session to actually be started, otherwise it returns nil.
+      if session.state != .started {
+        var reachedStarted = false
+        for await state in session.stateStream() {
+          if state == .started {
+            reachedStarted = true
+            break
+          }
+          if state == .stopped {
+            break
+          }
+        }
+        guard reachedStarted else {
+          showError("Device session failed to start.")
+          teardownSession()
+          return
+        }
+      }
 
       guard let newStream = try session.addStream(config: currentStreamConfiguration()) else {
+        NSLog("[Stream] addStream returned nil (session state: %@)", String(describing: session.state))
         showError("Unable to start camera stream.")
         teardownSession()
         return
@@ -302,6 +332,7 @@ class StreamSessionViewModel: ObservableObject {
       attachStreamListeners(newStream)
       newStream.start()
     } catch {
+      NSLog("[Stream] DeviceSessionError: %@", error.description)
       showError("Failed to start session: \(error.description)")
       teardownSession()
     }
