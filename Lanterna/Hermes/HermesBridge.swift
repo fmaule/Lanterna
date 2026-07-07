@@ -115,7 +115,7 @@ class HermesBridge: ObservableObject {
     HermesLog.line("resetSession (server-side key retained: \(GeminiConfig.hermesSessionKey))")
   }
 
-  // MARK: - Agent Run (SSE)
+  // MARK: - Agent Run (start + SSE subscribe)
 
   func delegateTask(
     task: String,
@@ -124,35 +124,79 @@ class HermesBridge: ObservableObject {
     lastToolCallStatus = .executing(toolName)
     HermesLog.banner("RUN START tool=\(toolName)")
 
-    guard let url = URL(string: "\(GeminiConfig.hermesBaseURL)/v1/runs") else {
-      HermesLog.line("delegateTask: invalid URL")
+    // Step 1: POST /v1/runs to kick off the run and get a run_id
+    guard let startURL = URL(string: "\(GeminiConfig.hermesBaseURL)/v1/runs") else {
+      HermesLog.line("delegateTask: invalid start URL")
       lastToolCallStatus = .failed(toolName, "Invalid URL")
       return .failure("Invalid Hermes URL")
     }
 
-    var request = URLRequest(url: url)
-    request.httpMethod = "POST"
-    request.setValue("Bearer \(GeminiConfig.hermesBearerToken)", forHTTPHeaderField: "Authorization")
-    request.setValue(GeminiConfig.hermesSessionKey, forHTTPHeaderField: "X-Hermes-Session-Key")
-    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-    request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+    var startRequest = URLRequest(url: startURL)
+    startRequest.httpMethod = "POST"
+    startRequest.setValue("Bearer \(GeminiConfig.hermesBearerToken)", forHTTPHeaderField: "Authorization")
+    startRequest.setValue(GeminiConfig.hermesSessionKey, forHTTPHeaderField: "X-Hermes-Session-Key")
+    startRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    startRequest.setValue("application/json", forHTTPHeaderField: "Accept")
 
     let body: [String: Any] = ["input": task]
     let bodyData: Data
     do {
       bodyData = try JSONSerialization.data(withJSONObject: body)
-      request.httpBody = bodyData
+      startRequest.httpBody = bodyData
     } catch {
       HermesLog.line("delegateTask: body encode failed \(error.localizedDescription)")
       lastToolCallStatus = .failed(toolName, "Body encode failed")
       return .failure("Body encode failed: \(error.localizedDescription)")
     }
 
-    HermesLog.dumpRequest(request, body: bodyData)
+    HermesLog.dumpRequest(startRequest, body: bodyData)
     let startedAt = Date()
 
+    let runId: String
     do {
-      let (bytes, response) = try await session.bytes(for: request)
+      let (startData, startResponse) = try await session.data(for: startRequest)
+      HermesLog.dumpResponse(startResponse)
+      if let s = String(data: startData, encoding: .utf8), !s.isEmpty {
+        HermesLog.line("  body: \(String(s.prefix(400)))")
+      }
+      guard let http = startResponse as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
+        let code = (startResponse as? HTTPURLResponse)?.statusCode ?? 0
+        HermesLog.line("run start failed HTTP \(code)")
+        lastToolCallStatus = .failed(toolName, "HTTP \(code)")
+        return .failure("Hermes /v1/runs returned HTTP \(code)")
+      }
+      guard let json = try? JSONSerialization.jsonObject(with: startData) as? [String: Any],
+            let id = json["run_id"] as? String else {
+        HermesLog.line("run start response missing run_id")
+        lastToolCallStatus = .failed(toolName, "Missing run_id")
+        return .failure("Hermes did not return a run_id")
+      }
+      runId = id
+      let status = (json["status"] as? String) ?? "?"
+      HermesLog.line("run started run_id=\(runId) status=\(status)")
+    } catch {
+      HermesLog.line("run start threw: \(error.localizedDescription)")
+      lastToolCallStatus = .failed(toolName, error.localizedDescription)
+      return .failure("Hermes start error: \(error.localizedDescription)")
+    }
+
+    // Step 2: GET /v1/runs/{run_id}/events to subscribe to the SSE stream
+    guard let streamURL = URL(string: "\(GeminiConfig.hermesBaseURL)/v1/runs/\(runId)/events") else {
+      HermesLog.line("delegateTask: invalid stream URL")
+      lastToolCallStatus = .failed(toolName, "Invalid stream URL")
+      return .failure("Invalid Hermes stream URL")
+    }
+
+    var streamRequest = URLRequest(url: streamURL)
+    streamRequest.httpMethod = "GET"
+    streamRequest.setValue("Bearer \(GeminiConfig.hermesBearerToken)", forHTTPHeaderField: "Authorization")
+    streamRequest.setValue(GeminiConfig.hermesSessionKey, forHTTPHeaderField: "X-Hermes-Session-Key")
+    streamRequest.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+
+    HermesLog.dumpRequest(streamRequest, body: nil)
+
+    do {
+      let (bytes, response) = try await session.bytes(for: streamRequest)
       HermesLog.dumpResponse(response)
       guard let http = response as? HTTPURLResponse else {
         lastToolCallStatus = .failed(toolName, "No HTTP response")
@@ -164,14 +208,13 @@ class HermesBridge: ObservableObject {
           preview += line + "\n"
           if preview.count > 400 { break }
         }
-        HermesLog.line("run failed HTTP \(http.statusCode) body: \(preview)")
+        HermesLog.line("stream subscribe failed HTTP \(http.statusCode) body: \(preview)")
         lastToolCallStatus = .failed(toolName, "HTTP \(http.statusCode)")
-        return .failure("Hermes returned HTTP \(http.statusCode)")
+        return .failure("Hermes stream returned HTTP \(http.statusCode)")
       }
 
       HermesLog.line("SSE stream open, reading events…")
 
-      var runId: String? = nil
       var currentDelta = ""
       var frameCount = 0
       var deltaTokenCount = 0
@@ -205,7 +248,6 @@ class HermesBridge: ObservableObject {
 
         frameCount += 1
         let event = (payload["event"] as? String) ?? "unknown"
-        if runId == nil { runId = payload["run_id"] as? String }
 
         switch event {
         case "message.delta":
@@ -238,12 +280,11 @@ class HermesBridge: ObservableObject {
           }
 
         case "approval.request":
-          let runIdForApproval = (payload["run_id"] as? String) ?? runId ?? ""
           let command = (payload["command"] as? String) ?? "(no command)"
           let choices = (payload["choices"] as? [String]) ?? []
-          HermesLog.line("  ▸ approval.request run=\(runIdForApproval) command=\(String(command.prefix(200))) choices=\(choices)")
+          HermesLog.line("  ▸ approval.request run=\(runId) command=\(String(command.prefix(200))) choices=\(choices)")
           HermesLog.line("  ▸ auto-responding `once`")
-          await respondToApproval(runId: runIdForApproval, choice: "once")
+          await respondToApproval(runId: runId, choice: "once")
 
         case "approval.responded":
           HermesLog.line("  ▸ approval.responded")
@@ -252,7 +293,7 @@ class HermesBridge: ObservableObject {
           let output = (payload["output"] as? String) ?? currentDelta
           let usage = payload["usage"] as? [String: Any]
           let elapsed = Date().timeIntervalSince(startedAt)
-          HermesLog.line("  ▸ run.completed run=\(runId ?? "?") elapsed=\(String(format: "%.2f", elapsed))s frames=\(frameCount) output=\(output.count)ch")
+          HermesLog.line("  ▸ run.completed run=\(runId) elapsed=\(String(format: "%.2f", elapsed))s frames=\(frameCount) output=\(output.count)ch")
           if let usage { HermesLog.line("  ▸ usage: \(usage)") }
           HermesLog.line("  ▸ output preview: \(String(output.prefix(400)))")
           HermesLog.banner("RUN END success")
@@ -261,13 +302,13 @@ class HermesBridge: ObservableObject {
 
         case "run.failed":
           let err = (payload["error"] as? String) ?? "Unknown error"
-          HermesLog.line("  ▸ run.failed run=\(runId ?? "?") error=\(err)")
+          HermesLog.line("  ▸ run.failed run=\(runId) error=\(err)")
           HermesLog.banner("RUN END failure")
           lastToolCallStatus = .failed(toolName, err)
           return .failure(err)
 
         case "run.cancelled":
-          HermesLog.line("  ▸ run.cancelled run=\(runId ?? "?")")
+          HermesLog.line("  ▸ run.cancelled run=\(runId)")
           HermesLog.banner("RUN END cancelled")
           lastToolCallStatus = .cancelled(toolName)
           return .failure("Run cancelled")
@@ -289,7 +330,7 @@ class HermesBridge: ObservableObject {
       return .failure("Stream ended without result")
 
     } catch {
-      HermesLog.line("run threw: \(error.localizedDescription)")
+      HermesLog.line("stream threw: \(error.localizedDescription)")
       HermesLog.banner("RUN END error")
       lastToolCallStatus = .failed(toolName, error.localizedDescription)
       return .failure("Hermes error: \(error.localizedDescription)")

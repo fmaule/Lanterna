@@ -13,11 +13,15 @@ struct SettingsView: View {
   @State private var hermesBearerToken: String = ""
   @State private var hermesSessionKey: String = ""
   @State private var geminiSystemPrompt: String = ""
+  @State private var geminiVoiceName: String = GeminiConfig.defaultVoiceName
   @State private var webrtcSignalingURL: String = ""
   @State private var speakerOutputEnabled: Bool = false
   @State private var videoStreamingEnabled: Bool = true
   @State private var proactiveNotificationsEnabled: Bool = true
   @State private var showResetConfirmation = false
+  @State private var hermesTestInput: String = "say hi in one short sentence"
+  @State private var hermesTestOutput: String = ""
+  @State private var hermesTestInFlight: Bool = false
 
   var body: some View {
     NavigationView {
@@ -31,6 +35,14 @@ struct SettingsView: View {
               .autocapitalization(.none)
               .disableAutocorrection(true)
               .font(.system(.body, design: .monospaced))
+          }
+        }
+
+        Section(header: Text("Voice"), footer: Text("Which Gemini prebuilt voice to use. Takes effect on the next session.")) {
+          Picker("Voice", selection: $geminiVoiceName) {
+            ForEach(GeminiConfig.availableVoices, id: \.self) { name in
+              Text(name).tag(name)
+            }
           }
         }
 
@@ -115,6 +127,46 @@ struct SettingsView: View {
           }
         }
 
+        Section(header: Text("Hermes Test"), footer: Text("Fires a run against the currently-saved Hermes config. Save first if you just edited the fields. Full request/response is logged to Xcode with the [Hermes] prefix.")) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Input")
+              .font(.caption)
+              .foregroundColor(.secondary)
+            TextField("say hi", text: $hermesTestInput)
+              .autocapitalization(.none)
+              .disableAutocorrection(true)
+              .font(.system(.body, design: .monospaced))
+          }
+
+          Button(action: runHermesTest) {
+            HStack {
+              if hermesTestInFlight {
+                ProgressView()
+                Text("Running…")
+              } else {
+                Image(systemName: "play.circle.fill")
+                Text("Send Test Run")
+              }
+            }
+          }
+          .disabled(hermesTestInFlight || hermesTestInput.trimmingCharacters(in: .whitespaces).isEmpty)
+
+          if !hermesTestOutput.isEmpty {
+            VStack(alignment: .leading, spacing: 4) {
+              Text("Result")
+                .font(.caption)
+                .foregroundColor(.secondary)
+              ScrollView {
+                Text(hermesTestOutput)
+                  .font(.system(.footnote, design: .monospaced))
+                  .textSelection(.enabled)
+                  .frame(maxWidth: .infinity, alignment: .leading)
+              }
+              .frame(maxHeight: 200)
+            }
+          }
+        }
+
         Section(header: Text("WebRTC")) {
           VStack(alignment: .leading, spacing: 4) {
             Text("Signaling URL")
@@ -181,6 +233,7 @@ struct SettingsView: View {
   private func loadCurrentValues() {
     geminiAPIKey = settings.geminiAPIKey
     geminiSystemPrompt = settings.geminiSystemPrompt
+    geminiVoiceName = settings.geminiVoiceName
     openClawHost = settings.openClawHost
     openClawPort = String(settings.openClawPort)
     openClawHookToken = settings.openClawHookToken
@@ -197,6 +250,7 @@ struct SettingsView: View {
   private func save() {
     settings.geminiAPIKey = geminiAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
     settings.geminiSystemPrompt = geminiSystemPrompt.trimmingCharacters(in: .whitespacesAndNewlines)
+    settings.geminiVoiceName = geminiVoiceName
     settings.openClawHost = openClawHost.trimmingCharacters(in: .whitespacesAndNewlines)
     if let port = Int(openClawPort.trimmingCharacters(in: .whitespacesAndNewlines)) {
       settings.openClawPort = port
@@ -210,5 +264,24 @@ struct SettingsView: View {
     settings.speakerOutputEnabled = speakerOutputEnabled
     settings.videoStreamingEnabled = videoStreamingEnabled
     settings.proactiveNotificationsEnabled = proactiveNotificationsEnabled
+  }
+
+  private func runHermesTest() {
+    let input = hermesTestInput.trimmingCharacters(in: .whitespaces)
+    guard !input.isEmpty else { return }
+    hermesTestInFlight = true
+    hermesTestOutput = ""
+    Task { @MainActor in
+      let bridge = HermesBridge()
+      await bridge.checkConnection()
+      let result = await bridge.delegateTask(task: input, toolName: "settings.test")
+      switch result {
+      case .success(let text):
+        hermesTestOutput = "✅ \(text)"
+      case .failure(let err):
+        hermesTestOutput = "❌ \(err)"
+      }
+      hermesTestInFlight = false
+    }
   }
 }

@@ -18,6 +18,7 @@ final class SettingsManager {
     case openClawHost
     case openClawPort
     case geminiSystemPrompt
+    case geminiVoiceName
     case webrtcSignalingURL
     case speakerOutputEnabled
     case videoStreamingEnabled
@@ -38,6 +39,11 @@ final class SettingsManager {
   var geminiSystemPrompt: String {
     get { defaults.string(forKey: Key.geminiSystemPrompt.rawValue) ?? GeminiConfig.defaultSystemInstruction }
     set { defaults.set(newValue, forKey: Key.geminiSystemPrompt.rawValue) }
+  }
+
+  var geminiVoiceName: String {
+    get { defaults.string(forKey: Key.geminiVoiceName.rawValue) ?? GeminiConfig.defaultVoiceName }
+    set { defaults.set(newValue, forKey: Key.geminiVoiceName.rawValue) }
   }
 
   // MARK: - OpenClaw
@@ -114,7 +120,7 @@ final class SettingsManager {
 
   func resetAll() {
     KeychainManager.deleteAll()
-    for key in [Key.geminiSystemPrompt, .openClawHost, .openClawPort,
+    for key in [Key.geminiSystemPrompt, .geminiVoiceName, .openClawHost, .openClawPort,
                 .webrtcSignalingURL, .speakerOutputEnabled, .videoStreamingEnabled,
                 .proactiveNotificationsEnabled, .hermesBaseURL, .hermesSessionKey] {
       defaults.removeObject(forKey: key.rawValue)
