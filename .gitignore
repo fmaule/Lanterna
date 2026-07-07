@@ -1,8 +1,17 @@
 .DS_Store
+xcuserdata/
 
-# Android
-samples/CameraAccessAndroid/app/src/main/java/**/Secrets.kt
-samples/CameraAccessAndroid/local.properties
-samples/CameraAccessAndroid/.gradle/
-samples/CameraAccessAndroid/build/
-samples/CameraAccessAndroid/app/build/
+*.xcframework/
+
+# FastVLM model files (large binaries, download separately)
+Lanterna/FastVLM/models/
+
+# Local secrets (API keys, tokens)
+Lanterna/Secrets.swift
+
+# Xcode workspace metadata
+*.xcworkspace/
+
+# Node server
+server/node_modules/
+server/package-lock.json
