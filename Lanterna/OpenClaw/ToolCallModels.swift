@@ -64,13 +64,16 @@ enum ToolCallStatus: Equatable {
   case failed(String, String)
   case cancelled(String)
 
+  /// Short, non-technical text shown in the on-screen pill. Kept plain-
+  /// spoken because the primary user is blind and this string doubles as the
+  /// VoiceOver accessibility label.
   var displayText: String {
     switch self {
     case .idle: return ""
-    case .executing(let name): return "Running: \(name)..."
-    case .completed(let name): return "Done: \(name)"
-    case .failed(let name, let err): return "Failed: \(name) - \(err)"
-    case .cancelled(let name): return "Cancelled: \(name)"
+    case .executing: return "Working on it…"
+    case .completed: return "Done"
+    case .failed: return "Something went wrong"
+    case .cancelled: return "Stopped"
     }
   }
 

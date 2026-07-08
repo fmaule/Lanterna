@@ -91,6 +91,9 @@ struct ToolCallStatusView: View {
       .padding(.vertical, 8)
       .background(statusBackground)
       .cornerRadius(16)
+      .accessibilityElement(children: .combine)
+      .accessibilityLabel(status.displayText)
+      .accessibilityAddTraits(.updatesFrequently)
     }
   }
 

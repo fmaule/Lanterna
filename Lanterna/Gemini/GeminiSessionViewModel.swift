@@ -118,7 +118,14 @@ class GeminiSessionViewModel: ObservableObject {
         guard !Task.isCancelled else { break }
         self.connectionState = self.geminiService.connectionState
         self.isModelSpeaking = self.geminiService.isModelSpeaking
-        self.toolCallStatus = self.hermesBridge.lastToolCallStatus
+        let newToolStatus = self.hermesBridge.lastToolCallStatus
+        if newToolStatus != self.toolCallStatus {
+          ToolCallFeedback.shared.handleTransition(
+            from: self.toolCallStatus,
+            to: newToolStatus
+          )
+          self.toolCallStatus = newToolStatus
+        }
         self.hermesConnectionState = self.hermesBridge.connectionState
       }
     }

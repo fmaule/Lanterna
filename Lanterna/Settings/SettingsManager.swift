@@ -23,6 +23,7 @@ final class SettingsManager {
     case speakerOutputEnabled
     case videoStreamingEnabled
     case proactiveNotificationsEnabled
+    case toolCallSoundsEnabled
     case hermesBaseURL
     case hermesSessionKey
   }
@@ -116,13 +117,22 @@ final class SettingsManager {
     set { defaults.set(newValue, forKey: Key.proactiveNotificationsEnabled.rawValue) }
   }
 
+  /// Play haptic + audio cues when a tool-call starts, finishes, fails, or is
+  /// cancelled. Primary user is blind — leave this on unless it causes
+  /// interference.
+  var toolCallSoundsEnabled: Bool {
+    get { defaults.object(forKey: Key.toolCallSoundsEnabled.rawValue) as? Bool ?? true }
+    set { defaults.set(newValue, forKey: Key.toolCallSoundsEnabled.rawValue) }
+  }
+
   // MARK: - Reset
 
   func resetAll() {
     KeychainManager.deleteAll()
     for key in [Key.geminiSystemPrompt, .geminiVoiceName, .openClawHost, .openClawPort,
                 .webrtcSignalingURL, .speakerOutputEnabled, .videoStreamingEnabled,
-                .proactiveNotificationsEnabled, .hermesBaseURL, .hermesSessionKey] {
+                .proactiveNotificationsEnabled, .toolCallSoundsEnabled,
+                .hermesBaseURL, .hermesSessionKey] {
       defaults.removeObject(forKey: key.rawValue)
     }
   }
