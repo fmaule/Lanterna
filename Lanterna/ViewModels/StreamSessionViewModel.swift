@@ -262,10 +262,12 @@ class StreamSessionViewModel: ObservableObject {
         if newErrorMessage != self.errorMessage {
           showError(newErrorMessage)
         }
-        // The stream just failed — reusing this session on the next start
-        // attempt typically fails silently (session stays in a non-.started
-        // state and never streams). Tear it down so retry gets fresh state.
-        self.teardownSession()
+        // The stream tripped. Drop the stream but KEEP the DeviceSession
+        // alive — 0.8 stream errors are frequently transient and the session
+        // can host a new stream on the next start attempt. Nuking the whole
+        // session here reproduces the "works once, then dead until redeploy"
+        // bug because DeviceSession.stop() is not fully synchronous.
+        self.stopStreamOnly()
       }
     }
 
@@ -307,6 +309,14 @@ class StreamSessionViewModel: ObservableObject {
     streamingStatus = .waiting
     requiresDATAppUpdate = false
 
+    // A leftover stream from a previous run must be gone before addStream()
+    // is called again — the session only hosts one camera stream at a time.
+    if stream != nil {
+      Log.stream.notice("startSession: dropping stale stream reference before restart")
+      stopStreamOnly()
+      streamingStatus = .waiting // stopStreamOnly() cleared it
+    }
+
     // Wait for a device to become available before creating a session.
     if deviceSelector.activeDevice == nil {
       Log.stream.info("startSession: waiting for active device")
@@ -317,15 +327,28 @@ class StreamSessionViewModel: ObservableObject {
     Log.stream.info("startSession: active device present, cached session state=\(self.deviceSession.map { String(describing: $0.state) } ?? "nil", privacy: .public)")
 
     // Only reuse an existing session when it's in a state we can actually
-    // start from. Anything else (stopping, paused, started-but-not-streaming,
-    // or a stale post-error session) gets torn down first so we get a fresh
-    // one below.
+    // work with. `.stopping` in particular is deadly: creating a new session
+    // while one is tearing down triggers `sessionAlreadyExists` or a silent
+    // hang. Wait it out (or bail) instead of racing.
     if let existing = deviceSession {
       switch existing.state {
-      case .idle, .stopped, .started:
+      case .idle, .stopped, .started, .starting:
         break
-      default:
-        Log.stream.notice("Dropping unusable cached session (state=\(String(describing: existing.state), privacy: .public))")
+      case .paused:
+        // Session paused by the SDK (hinges, thermal, etc). Don't touch it —
+        // the SDK resumes to .started or drops to .stopped on its own.
+        Log.stream.notice("Session is paused; awaiting SDK resume before adding stream")
+      case .stopping:
+        Log.stream.notice("Cached session is .stopping — waiting for .stopped before creating a new one")
+        for await state in existing.stateStream() {
+          if state == .stopped { break }
+        }
+        // The session reference is now spent; drop it so we create a fresh one.
+        deviceSession = nil
+        sessionStateListenerToken = nil
+        sessionErrorListenerToken = nil
+      @unknown default:
+        Log.stream.notice("Dropping unknown-state cached session (state=\(String(describing: existing.state), privacy: .public))")
         teardownSession()
       }
     }
@@ -360,24 +383,21 @@ class StreamSessionViewModel: ObservableObject {
       guard let newStream = try session.addStream(config: currentStreamConfiguration()) else {
         Log.stream.error("addStream returned nil (session state: \(String(describing: session.state), privacy: .public))")
         showError("Unable to start camera stream.")
-        teardownSession()
+        // Drop the stream but keep the session — retry may succeed on the same session.
+        stopStreamOnly()
         return
       }
       stream = newStream
       attachStreamListeners(newStream)
       Log.stream.info("Calling stream.start() (codec=\(String(describing: self.currentStreamConfiguration().videoCodec), privacy: .public), resolution=\(self.resolutionLabel, privacy: .public))")
       newStream.start()
-    } catch let error as DeviceSessionError {
+    } catch {
       Log.stream.error("DeviceSessionError: \(error.description, privacy: .public)")
       if case .datAppOnTheGlassesUpdateRequired = error {
         requiresDATAppUpdate = true
       }
       // Prefer localizedDescription for user-facing text; description is
       // English-only and intended for logs.
-      showError("Failed to start session: \(error.localizedDescription)")
-      teardownSession()
-    } catch {
-      Log.stream.error("Session start failed: \(String(describing: error), privacy: .public)")
       showError("Failed to start session: \(error.localizedDescription)")
       teardownSession()
     }
@@ -439,23 +459,36 @@ class StreamSessionViewModel: ObservableObject {
       stopIPhoneSession()
       return
     }
-    teardownSession()
+    // User-visible stop: kill the stream only. Keeping the DeviceSession alive
+    // matches the DAT 0.8 sample and avoids the sessionAlreadyExists / silent-
+    // hang trap that hits when you try to create a new session while the SDK
+    // is still tearing the previous one down asynchronously.
+    stopStreamOnly()
   }
 
-  private func teardownSession() {
+  /// Tears down the current camera stream but leaves the DeviceSession alive
+  /// so the next start can reuse it. Safe to call repeatedly.
+  private func stopStreamOnly() {
     stream?.stop()
-    deviceSession?.stop()
     stream = nil
-    deviceSession = nil
     stateListenerToken = nil
     videoFrameListenerToken = nil
     errorListenerToken = nil
     photoDataListenerToken = nil
-    sessionStateListenerToken = nil
-    sessionErrorListenerToken = nil
     streamingStatus = .stopped
     currentVideoFrame = nil
     hasReceivedFirstFrame = false
+  }
+
+  /// Full teardown — stops the stream AND the underlying DeviceSession, drops
+  /// every listener. Use only when the session itself is unrecoverable
+  /// (session-level error, view-model deinit, glasses disconnected).
+  private func teardownSession() {
+    stopStreamOnly()
+    deviceSession?.stop()
+    deviceSession = nil
+    sessionStateListenerToken = nil
+    sessionErrorListenerToken = nil
   }
 
   // MARK: - iPhone Camera Mode
