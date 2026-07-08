@@ -55,7 +55,7 @@ class CustomVideoCapturer: RTCVideoCapturer {
 
     frameCount += 1
     if frameCount == 1 || frameCount % 120 == 0 {
-      NSLog("[WebRTC] Pushed frame #%lld (%dx%d)", frameCount, width, height)
+      Log.webRTC.debug("Pushed frame #\(self.frameCount) (\(width)x\(height))")
     }
   }
 }

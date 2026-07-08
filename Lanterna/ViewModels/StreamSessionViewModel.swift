@@ -113,8 +113,11 @@ class StreamSessionViewModel: ObservableObject {
   }
 
   private func currentStreamConfiguration() -> StreamConfiguration {
+    // NOTE: hvc1 caused the device to emit .videoStreamingError right after
+    // stream.start(). Sticking with .raw — background decoding still works
+    // via the pixel-buffer branch in attachStreamListeners.
     StreamConfiguration(
-      videoCodec: VideoCodec.hvc1,
+      videoCodec: VideoCodec.raw,
       resolution: selectedResolution,
       frameRate: 24)
   }
@@ -133,8 +136,7 @@ class StreamSessionViewModel: ObservableObject {
           self.geminiSessionVM?.sendVideoFrameIfThrottled(image: image)
           self.webrtcSessionVM?.pushVideoFrame(image)
           if self.backgroundFrameCount <= 5 || self.backgroundFrameCount % 120 == 0 {
-            NSLog("[Stream] Background frame #%d decoded and forwarded (%dx%d)",
-                  self.backgroundFrameCount, width, height)
+            Log.stream.debug("Background frame #\(self.backgroundFrameCount) decoded and forwarded (\(width)x\(height))")
           }
         }
       }
@@ -148,13 +150,14 @@ class StreamSessionViewModel: ObservableObject {
     selectedResolution = resolution
     stream = nil
     deviceSession = nil
-    NSLog("[Stream] Resolution changed to %@", resolutionLabel)
+    Log.stream.info("Resolution changed to \(self.resolutionLabel, privacy: .public)")
   }
 
   private func attachSessionListeners(_ session: DeviceSession) {
     sessionStateListenerToken = session.statePublisher.listen { [weak self] state in
       Task { @MainActor [weak self] in
         guard let self else { return }
+        Log.stream.info("session state -> \(String(describing: state), privacy: .public)")
         if state == .stopped {
           self.streamingStatus = .stopped
           self.currentVideoFrame = nil
@@ -165,7 +168,12 @@ class StreamSessionViewModel: ObservableObject {
     sessionErrorListenerToken = session.errorPublisher.listen { [weak self] error in
       Task { @MainActor [weak self] in
         guard let self else { return }
+        Log.stream.error("session error: \(String(describing: error), privacy: .public) (description: \(error.description, privacy: .public))")
         showError(formatSessionError(error))
+        // Any session-level error means the session is no longer trustworthy.
+        // Drop it so the next start attempt creates a fresh one instead of
+        // reusing a corpse.
+        self.teardownSession()
       }
     }
   }
@@ -213,8 +221,7 @@ class StreamSessionViewModel: ObservableObject {
               try self.videoDecoder.decode(sampleBuffer)
             } catch {
               if self.backgroundFrameCount <= 5 || self.backgroundFrameCount % 120 == 0 {
-                NSLog("[Stream] Background frame #%d decode error: %@",
-                      self.backgroundFrameCount, String(describing: error))
+                Log.stream.error("Background frame #\(self.backgroundFrameCount) decode error: \(String(describing: error), privacy: .public)")
               }
             }
           } else if let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
@@ -238,6 +245,7 @@ class StreamSessionViewModel: ObservableObject {
     errorListenerToken = stream.errorPublisher.listen { [weak self] error in
       Task { @MainActor [weak self] in
         guard let self else { return }
+        Log.stream.error("errorPublisher fired: \(String(describing: error), privacy: .public) (status=\(String(describing: self.streamingStatus), privacy: .public), codec=\(String(describing: self.currentStreamConfiguration().videoCodec), privacy: .public), resolution=\(self.resolutionLabel, privacy: .public))")
         // Suppress device-not-found errors when user hasn't started streaming yet
         if self.streamingStatus == .stopped {
           if case .deviceNotConnected = error { return }
@@ -247,6 +255,10 @@ class StreamSessionViewModel: ObservableObject {
         if newErrorMessage != self.errorMessage {
           showError(newErrorMessage)
         }
+        // The stream just failed — reusing this session on the next start
+        // attempt typically fails silently (session stays in a non-.started
+        // state and never streams). Tear it down so retry gets fresh state.
+        self.teardownSession()
       }
     }
 
@@ -289,8 +301,24 @@ class StreamSessionViewModel: ObservableObject {
 
     // Wait for a device to become available before creating a session.
     if deviceSelector.activeDevice == nil {
+      Log.stream.info("startSession: waiting for active device")
       for await device in deviceSelector.activeDeviceStream() {
         if device != nil { break }
+      }
+    }
+    Log.stream.info("startSession: active device present, cached session state=\(self.deviceSession.map { String(describing: $0.state) } ?? "nil", privacy: .public)")
+
+    // Only reuse an existing session when it's in a state we can actually
+    // start from. Anything else (stopping, paused, started-but-not-streaming,
+    // or a stale post-error session) gets torn down first so we get a fresh
+    // one below.
+    if let existing = deviceSession {
+      switch existing.state {
+      case .idle, .stopped, .started:
+        break
+      default:
+        Log.stream.notice("Dropping unusable cached session (state=\(String(describing: existing.state), privacy: .public))")
+        teardownSession()
       }
     }
 
@@ -302,9 +330,11 @@ class StreamSessionViewModel: ObservableObject {
         session = try wearables.createSession(deviceSelector: deviceSelector)
         deviceSession = session
         attachSessionListeners(session)
+        Log.stream.info("Created new device session")
       }
 
       if session.state == .idle || session.state == .stopped {
+        Log.stream.info("Calling session.start() from state=\(String(describing: session.state), privacy: .public)")
         try session.start()
       }
 
@@ -314,6 +344,7 @@ class StreamSessionViewModel: ObservableObject {
       if session.state != .started {
         var reachedStarted = false
         for await state in session.stateStream() {
+          Log.stream.debug("awaiting .started, got \(String(describing: state), privacy: .public)")
           if state == .started {
             reachedStarted = true
             break
@@ -323,6 +354,7 @@ class StreamSessionViewModel: ObservableObject {
           }
         }
         guard reachedStarted else {
+          Log.stream.error("session never reached .started (final state=\(String(describing: session.state), privacy: .public))")
           showError("Device session failed to start.")
           teardownSession()
           return
@@ -330,16 +362,17 @@ class StreamSessionViewModel: ObservableObject {
       }
 
       guard let newStream = try session.addStream(config: currentStreamConfiguration()) else {
-        NSLog("[Stream] addStream returned nil (session state: %@)", String(describing: session.state))
+        Log.stream.error("addStream returned nil (session state: \(String(describing: session.state), privacy: .public))")
         showError("Unable to start camera stream.")
         teardownSession()
         return
       }
       stream = newStream
       attachStreamListeners(newStream)
+      Log.stream.info("Calling stream.start() (codec=\(String(describing: self.currentStreamConfiguration().videoCodec), privacy: .public), resolution=\(self.resolutionLabel, privacy: .public))")
       newStream.start()
     } catch {
-      NSLog("[Stream] DeviceSessionError: %@", error.description)
+      Log.stream.error("DeviceSessionError: \(error.description, privacy: .public)")
       showError("Failed to start session: \(error.description)")
       teardownSession()
     }
@@ -363,8 +396,15 @@ class StreamSessionViewModel: ObservableObject {
     deviceSession?.stop()
     stream = nil
     deviceSession = nil
+    stateListenerToken = nil
+    videoFrameListenerToken = nil
+    errorListenerToken = nil
+    photoDataListenerToken = nil
+    sessionStateListenerToken = nil
+    sessionErrorListenerToken = nil
     streamingStatus = .stopped
     currentVideoFrame = nil
+    hasReceivedFirstFrame = false
   }
 
   // MARK: - iPhone Camera Mode
@@ -405,7 +445,7 @@ class StreamSessionViewModel: ObservableObject {
     camera.start()
     iPhoneCameraManager = camera
     streamingStatus = .streaming
-    NSLog("[Stream] iPhone camera mode started")
+    Log.stream.info("iPhone camera mode started")
   }
 
   private func stopIPhoneSession() {
@@ -417,7 +457,7 @@ class StreamSessionViewModel: ObservableObject {
     streamingMode = .glasses
     iPhoneCameraPosition = .back
     pinchBaseZoom = 1.0
-    NSLog("[Stream] iPhone camera mode stopped")
+    Log.stream.info("iPhone camera mode stopped")
   }
 
   // MARK: - iPhone Camera Controls

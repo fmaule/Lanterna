@@ -13,8 +13,8 @@ const ROOM_GRACE_PERIOD_MS = 60_000;
 // TURN: ExpressTURN (1000 GB/month free, reliable)
 // Ports 3478 (standard), 80, 443 (firewall bypass)
 const EXPRESSTURN_SERVER = process.env.EXPRESSTURN_SERVER || "free.expressturn.com";
-const EXPRESSTURN_USER = process.env.EXPRESSTURN_USER || "efPU52K4SLOQ34W2QY";
-const EXPRESSTURN_PASS = process.env.EXPRESSTURN_PASS || "1TJPNFxHKXrZfelz";
+const EXPRESSTURN_USER = process.env.EXPRESSTURN_USER || "000000002098878845";
+const EXPRESSTURN_PASS = process.env.EXPRESSTURN_PASS || "EDQl8jLRNlRcqJW13Food9tylZY=";
 
 function getTurnCredentials() {
   return {

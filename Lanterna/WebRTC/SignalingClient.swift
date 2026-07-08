@@ -37,11 +37,11 @@ class SignalingClient {
     disconnect()
 
     delegate.onOpen = { [weak self] in
-      NSLog("[Signaling] Connected to %@", url.absoluteString)
+      Log.signaling.info("Connected to \(url.absoluteString, privacy: .public)")
       self?.onConnected?()
     }
     delegate.onClose = { [weak self] reason in
-      NSLog("[Signaling] Disconnected: %@", reason ?? "unknown")
+      Log.signaling.notice("Disconnected: \(reason ?? "unknown", privacy: .public)")
       self?.onDisconnected?(reason)
     }
 
@@ -93,7 +93,7 @@ class SignalingClient {
       else { return }
       task.send(.string(text)) { error in
         if let error {
-          NSLog("[Signaling] Send error: %@", error.localizedDescription)
+          Log.signaling.error("Send error: \(error.localizedDescription, privacy: .public)")
         }
       }
     }
@@ -117,7 +117,7 @@ class SignalingClient {
           }
         } catch {
           if !Task.isCancelled {
-            NSLog("[Signaling] Receive error: %@", error.localizedDescription)
+            Log.signaling.error("Receive error: \(error.localizedDescription, privacy: .public)")
             self.onDisconnected?(error.localizedDescription)
           }
           break
@@ -179,7 +179,7 @@ class SignalingClient {
       onMessageReceived?(.error(msg))
 
     default:
-      NSLog("[Signaling] Unknown message type: %@", type)
+      Log.signaling.notice("Unknown message type: \(type, privacy: .public)")
     }
   }
 }

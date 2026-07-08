@@ -301,14 +301,14 @@ class GeminiLiveService: ObservableObject {
 
     // Tool call from model (top-level message, not inside serverContent)
     if let toolCall = GeminiToolCall(json: json) {
-      NSLog("[Gemini] Tool call received: %d function(s)", toolCall.functionCalls.count)
+      Log.gemini.info("Tool call received: \(toolCall.functionCalls.count) function(s)")
       onToolCall?(toolCall)
       return
     }
 
     // Tool call cancellation (user interrupted during tool execution)
     if let cancellation = GeminiToolCallCancellation(json: json) {
-      NSLog("[Gemini] Tool call cancellation: %@", cancellation.ids.joined(separator: ", "))
+      Log.gemini.info("Tool call cancellation: \(cancellation.ids.joined(separator: ", "), privacy: .public)")
       onToolCallCancellation?(cancellation)
       return
     }
@@ -334,13 +334,13 @@ class GeminiLiveService: ObservableObject {
               // Log latency: time from end of user speech to first audio response
               if let speechEnd = lastUserSpeechEnd, !responseLatencyLogged {
                 let latency = Date().timeIntervalSince(speechEnd)
-                NSLog("[Latency] %.0fms (user speech end -> first audio)", latency * 1000)
+                Log.latency.info("\(Int(latency * 1000))ms (user speech end -> first audio)")
                 responseLatencyLogged = true
               }
             }
             onAudioReceived?(audioData)
           } else if let text = part["text"] as? String {
-            NSLog("[Gemini] %@", text)
+            Log.gemini.info("\(text)")
           }
         }
       }
@@ -353,14 +353,14 @@ class GeminiLiveService: ObservableObject {
 
       if let inputTranscription = serverContent["inputTranscription"] as? [String: Any],
          let text = inputTranscription["text"] as? String, !text.isEmpty {
-        NSLog("[Gemini] You: %@", text)
+        Log.gemini.info("You: \(text)")
         lastUserSpeechEnd = Date()
         responseLatencyLogged = false
         onInputTranscription?(text)
       }
       if let outputTranscription = serverContent["outputTranscription"] as? [String: Any],
          let text = outputTranscription["text"] as? String, !text.isEmpty {
-        NSLog("[Gemini] AI: %@", text)
+        Log.gemini.info("AI: \(text)")
         onOutputTranscription?(text)
       }
     }

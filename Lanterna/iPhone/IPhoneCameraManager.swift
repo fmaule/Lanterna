@@ -54,14 +54,14 @@ class IPhoneCameraManager: NSObject {
     applyOutputOrientation()
 
     captureSession.commitConfiguration()
-    NSLog("[iPhoneCamera] Session configured")
+    Log.iPhoneCamera.info("Session configured")
   }
 
   @discardableResult
   private func configureInput(position: AVCaptureDevice.Position) -> Bool {
     guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: position),
           let input = try? AVCaptureDeviceInput(device: camera) else {
-      NSLog("[iPhoneCamera] Failed to access camera at position %d", position.rawValue)
+      Log.iPhoneCamera.error("Failed to access camera at position \(position.rawValue)")
       return false
     }
 
@@ -70,7 +70,7 @@ class IPhoneCameraManager: NSObject {
     }
 
     guard captureSession.canAddInput(input) else {
-      NSLog("[iPhoneCamera] Session cannot add input for position %d", position.rawValue)
+      Log.iPhoneCamera.error("Session cannot add input for position \(position.rawValue)")
       // Try to restore previous input so we don't leave the session broken.
       if let existing = currentInput, captureSession.canAddInput(existing) {
         captureSession.addInput(existing)
@@ -108,7 +108,7 @@ class IPhoneCameraManager: NSObject {
         DispatchQueue.main.async {
           self.onPositionChanged?(position)
         }
-        NSLog("[iPhoneCamera] Switched to %@ camera", position == .front ? "front" : "back")
+        Log.iPhoneCamera.info("Switched to \(position == .front ? "front" : "back", privacy: .public) camera")
       }
     }
   }
@@ -150,7 +150,7 @@ class IPhoneCameraManager: NSObject {
           device.exposureMode = .continuousAutoExposure
         }
       } catch {
-        NSLog("[iPhoneCamera] Failed to set focus point: %@", error.localizedDescription)
+        Log.iPhoneCamera.error("Failed to set focus point: \(error.localizedDescription, privacy: .public)")
       }
     }
   }
@@ -168,7 +168,7 @@ class IPhoneCameraManager: NSObject {
         device.videoZoomFactor = clamped
         device.unlockForConfiguration()
       } catch {
-        NSLog("[iPhoneCamera] Failed to set zoom: %@", error.localizedDescription)
+        Log.iPhoneCamera.error("Failed to set zoom: \(error.localizedDescription, privacy: .public)")
       }
     }
   }

@@ -157,6 +157,7 @@
 		9D85EB992F35EC46006C44D1 /* OpenClaw */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); name = OpenClaw; path = Lanterna/OpenClaw; sourceTree = SOURCE_ROOT; };
 		9DAE12340001000000000001 /* Hermes */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); name = Hermes; path = Lanterna/Hermes; sourceTree = SOURCE_ROOT; };
 		9DAE12340002000000000001 /* Vision */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); name = Vision; path = Lanterna/Vision; sourceTree = SOURCE_ROOT; };
+		9DAE12340003000000000001 /* Support */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); name = Support; path = Lanterna/Support; sourceTree = SOURCE_ROOT; };
 		E699CC962E8150670052C240 /* LanternaTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = LanternaTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -257,6 +258,7 @@
 				9D85EB992F35EC46006C44D1 /* OpenClaw */,
 				9DAE12340001000000000001 /* Hermes */,
 				9DAE12340002000000000001 /* Vision */,
+				9DAE12340003000000000001 /* Support */,
 			);
 			path = Lanterna;
 			sourceTree = "<group>";
@@ -362,6 +364,7 @@
 				9D85EB992F35EC46006C44D1 /* OpenClaw */,
 				9DAE12340001000000000001 /* Hermes */,
 				9DAE12340002000000000001 /* Vision */,
+				9DAE12340003000000000001 /* Support */,
 			);
 			name = Lanterna;
 			productName = Lanterna;

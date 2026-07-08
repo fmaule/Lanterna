@@ -12,7 +12,7 @@ class OpenClawEventClient {
 
   func connect() {
     guard GeminiConfig.isOpenClawConfigured else {
-      NSLog("[OpenClawWS] Not configured, skipping")
+      Log.openClawWS.info("Not configured, skipping")
       return
     }
 
@@ -28,7 +28,7 @@ class OpenClawEventClient {
     webSocketTask = nil
     session?.invalidateAndCancel()
     session = nil
-    NSLog("[OpenClawWS] Disconnected")
+    Log.openClawWS.info("Disconnected")
   }
 
   // MARK: - Private
@@ -39,7 +39,7 @@ class OpenClawEventClient {
       .replacingOccurrences(of: "https://", with: "")
     let port = GeminiConfig.openClawPort
     guard let url = URL(string: "ws://\(host):\(port)") else {
-      NSLog("[OpenClawWS] Invalid URL")
+      Log.openClawWS.error("Invalid URL")
       return
     }
 
@@ -49,7 +49,7 @@ class OpenClawEventClient {
     webSocketTask = session?.webSocketTask(with: url)
     webSocketTask?.resume()
 
-    NSLog("[OpenClawWS] Connecting to %@", url.absoluteString)
+    Log.openClawWS.info("Connecting to \(url.absoluteString, privacy: .public)")
     startReceiving()
   }
 
@@ -70,7 +70,7 @@ class OpenClawEventClient {
         }
         self.startReceiving()
       case .failure(let error):
-        NSLog("[OpenClawWS] Receive error: %@", error.localizedDescription)
+        Log.openClawWS.error("Receive error: \(error.localizedDescription, privacy: .public)")
         self.isConnected = false
         self.scheduleReconnect()
       }
@@ -87,13 +87,13 @@ class OpenClawEventClient {
     } else if type == "res" {
       let ok = json["ok"] as? Bool ?? false
       if ok {
-        NSLog("[OpenClawWS] Connected and authenticated")
+        Log.openClawWS.notice("Connected and authenticated")
         isConnected = true
         reconnectDelay = 2
       } else {
         let error = json["error"] as? [String: Any]
         let msg = error?["message"] as? String ?? "unknown"
-        NSLog("[OpenClawWS] Connect failed: %@", msg)
+        Log.openClawWS.error("Connect failed: \(msg, privacy: .public)")
       }
     }
   }
@@ -147,7 +147,7 @@ class OpenClawEventClient {
           let string = String(data: data, encoding: .utf8) else { return }
     webSocketTask?.send(.string(string)) { error in
       if let error {
-        NSLog("[OpenClawWS] Handshake send error: %@", error.localizedDescription)
+        Log.openClawWS.error("Handshake send error: \(error.localizedDescription, privacy: .public)")
       }
     }
   }
@@ -162,7 +162,7 @@ class OpenClawEventClient {
     let silent = payload["silent"] as? Bool ?? false
     guard !silent else { return }
 
-    NSLog("[OpenClawWS] Heartbeat notification: %@", String(preview.prefix(100)))
+    Log.openClawWS.info("Heartbeat notification: \(String(preview.prefix(100)))")
     onNotification?("[Notification from your assistant] \(preview)")
   }
 
@@ -175,13 +175,13 @@ class OpenClawEventClient {
       ?? ""
     guard !summary.isEmpty else { return }
 
-    NSLog("[OpenClawWS] Cron notification: %@", String(summary.prefix(100)))
+    Log.openClawWS.info("Cron notification: \(String(summary.prefix(100)))")
     onNotification?("[Scheduled update] \(summary)")
   }
 
   private func scheduleReconnect() {
     guard shouldReconnect else { return }
-    NSLog("[OpenClawWS] Reconnecting in %.0fs", reconnectDelay)
+    Log.openClawWS.info("Reconnecting in \(Int(self.reconnectDelay))s")
     DispatchQueue.main.asyncAfter(deadline: .now() + reconnectDelay) { [weak self] in
       guard let self, self.shouldReconnect else { return }
       self.reconnectDelay = min(self.reconnectDelay * 2, self.maxReconnectDelay)

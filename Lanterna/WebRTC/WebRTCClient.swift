@@ -85,13 +85,12 @@ class WebRTCClient: NSObject {
     )
     peerConnection?.offer(for: constraints) { [weak self] sdp, error in
       guard let sdp else {
-        NSLog("[WebRTC] Failed to create offer: %@", error?.localizedDescription ?? "unknown")
+        Log.webRTC.error("Failed to create offer: \(error?.localizedDescription ?? "unknown", privacy: .public)")
         return
       }
       self?.peerConnection?.setLocalDescription(sdp) { error in
         if let error {
-          NSLog(
-            "[WebRTC] Failed to set local description: %@", error.localizedDescription)
+          Log.webRTC.error("Failed to set local description: \(error.localizedDescription, privacy: .public)")
         } else {
           completion(sdp)
         }
@@ -117,7 +116,7 @@ class WebRTCClient: NSObject {
     remoteVideoTrack = nil
     peerConnection?.close()
     peerConnection = nil
-    NSLog("[WebRTC] Peer connection closed")
+    Log.webRTC.notice("Peer connection closed")
   }
 
   deinit {
@@ -131,20 +130,20 @@ extension WebRTCClient: RTCPeerConnectionDelegate {
   func peerConnection(
     _ peerConnection: RTCPeerConnection, didChange stateChanged: RTCSignalingState
   ) {
-    NSLog("[WebRTC] Signaling state: %d", stateChanged.rawValue)
+    Log.webRTC.info("Signaling state: \(stateChanged.rawValue)")
   }
 
   func peerConnection(
     _ peerConnection: RTCPeerConnection, didChange newState: RTCIceConnectionState
   ) {
-    NSLog("[WebRTC] ICE connection state: %d", newState.rawValue)
+    Log.webRTC.info("ICE connection state: \(newState.rawValue)")
     delegate?.webRTCClient(self, didChangeConnectionState: newState)
   }
 
   func peerConnection(
     _ peerConnection: RTCPeerConnection, didChange newState: RTCIceGatheringState
   ) {
-    NSLog("[WebRTC] ICE gathering state: %d", newState.rawValue)
+    Log.webRTC.info("ICE gathering state: \(newState.rawValue)")
   }
 
   func peerConnection(
@@ -153,18 +152,17 @@ extension WebRTCClient: RTCPeerConnectionDelegate {
     // Log candidate type for debugging NAT traversal
     let sdp = candidate.sdp
     if sdp.contains("relay") {
-      NSLog("[WebRTC] ICE candidate: RELAY (TURN)")
+      Log.webRTC.debug("ICE candidate: RELAY (TURN)")
     } else if sdp.contains("srflx") {
-      NSLog("[WebRTC] ICE candidate: SERVER REFLEXIVE (STUN)")
+      Log.webRTC.debug("ICE candidate: SERVER REFLEXIVE (STUN)")
     } else if sdp.contains("host") {
-      NSLog("[WebRTC] ICE candidate: HOST (local)")
+      Log.webRTC.debug("ICE candidate: HOST (local)")
     }
     delegate?.webRTCClient(self, didGenerateCandidate: candidate)
   }
 
   func peerConnection(_ peerConnection: RTCPeerConnection, didAdd stream: RTCMediaStream) {
-    NSLog("[WebRTC] Remote stream added with %d audio tracks, %d video tracks",
-          stream.audioTracks.count, stream.videoTracks.count)
+    Log.webRTC.info("Remote stream added with \(stream.audioTracks.count) audio tracks, \(stream.videoTracks.count) video tracks")
     if let videoTrack = stream.videoTracks.first {
       remoteVideoTrack = videoTrack
       delegate?.webRTCClient(self, didReceiveRemoteVideoTrack: videoTrack)
@@ -172,7 +170,7 @@ extension WebRTCClient: RTCPeerConnectionDelegate {
   }
 
   func peerConnection(_ peerConnection: RTCPeerConnection, didRemove stream: RTCMediaStream) {
-    NSLog("[WebRTC] Remote stream removed")
+    Log.webRTC.info("Remote stream removed")
     if let track = remoteVideoTrack {
       remoteVideoTrack = nil
       delegate?.webRTCClient(self, didRemoveRemoteVideoTrack: track)
@@ -180,7 +178,7 @@ extension WebRTCClient: RTCPeerConnectionDelegate {
   }
 
   func peerConnectionShouldNegotiate(_ peerConnection: RTCPeerConnection) {
-    NSLog("[WebRTC] Negotiation needed")
+    Log.webRTC.debug("Negotiation needed")
   }
 
   func peerConnection(

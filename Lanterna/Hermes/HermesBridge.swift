@@ -8,10 +8,10 @@ enum HermesConnectionState: Equatable {
 }
 
 private enum HermesLog {
-  static func line(_ s: String = "") { NSLog("[Hermes] %@", s) }
+  static func line(_ s: String = "") { Log.hermes.info("\(s)") }
 
   static func banner(_ title: String) {
-    NSLog("[Hermes] ═══════════════ %@ ═══════════════", title)
+    Log.hermes.notice("═══════════════ \(title, privacy: .public) ═══════════════")
   }
 
   static func redactBearer(_ token: String) -> String {

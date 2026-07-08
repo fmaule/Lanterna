@@ -36,7 +36,7 @@ extension MockDeviceKitView {
         let mockDevice = try mockDeviceKit.pairGlasses(model: .rayBanMeta)
         cardViewModels.append(MockDeviceCardView.ViewModel(device: mockDevice))
       } catch {
-        NSLog("[MockDeviceKit] Failed to pair mock glasses: %@", String(describing: error))
+        Log.mockDevice.error("Failed to pair mock glasses: \(String(describing: error), privacy: .public)")
       }
     }
 

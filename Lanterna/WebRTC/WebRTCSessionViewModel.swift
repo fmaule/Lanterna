@@ -97,7 +97,7 @@ class WebRTCSessionViewModel: ObservableObject {
     signaling.onConnected = { [weak self] in
       Task { @MainActor in
         if let code = rejoinCode {
-          NSLog("[WebRTC] Reconnected, rejoining room: %@", code)
+          Log.webRTC.notice("Reconnected, rejoining room: \(code, privacy: .public)")
           self?.signalingClient?.rejoinRoom(code: code)
         } else {
           self?.signalingClient?.createRoom()
@@ -117,7 +117,7 @@ class WebRTCSessionViewModel: ObservableObject {
         // Don't fully stop -- mark as backgrounded so we can reconnect
         if self.savedRoomCode != nil {
           self.connectionState = .backgrounded
-          NSLog("[WebRTC] Signaling disconnected (backgrounded), will rejoin: %@", reason ?? "unknown")
+          Log.webRTC.notice("Signaling disconnected (backgrounded), will rejoin: \(reason ?? "unknown", privacy: .public)")
         } else {
           self.stopSession()
           self.errorMessage = "Signaling disconnected: \(reason ?? "Unknown")"
@@ -158,7 +158,7 @@ class WebRTCSessionViewModel: ObservableObject {
 
   private func handleReturnToForeground() {
     guard isActive, let code = savedRoomCode else { return }
-    NSLog("[WebRTC] App returned to foreground, reconnecting to room: %@", code)
+    Log.webRTC.notice("App returned to foreground, reconnecting to room: \(code, privacy: .public)")
     connectionState = .connecting
 
     // Tear down old peer connection, set up fresh one
@@ -181,16 +181,16 @@ class WebRTCSessionViewModel: ObservableObject {
       roomCode = code
       savedRoomCode = code
       connectionState = .waitingForPeer
-      NSLog("[WebRTC] Room created: %@", code)
+      Log.webRTC.notice("Room created: \(code, privacy: .public)")
 
     case .roomRejoined(let code):
       roomCode = code
       savedRoomCode = code
       connectionState = .waitingForPeer
-      NSLog("[WebRTC] Room rejoined: %@", code)
+      Log.webRTC.notice("Room rejoined: \(code, privacy: .public)")
 
     case .peerJoined:
-      NSLog("[WebRTC] Peer joined, creating offer")
+      Log.webRTC.notice("Peer joined, creating offer")
       webRTCClient?.createOffer { [weak self] sdp in
         self?.signalingClient?.send(sdp: sdp)
       }
@@ -198,25 +198,25 @@ class WebRTCSessionViewModel: ObservableObject {
     case .answer(let sdp):
       webRTCClient?.set(remoteSdp: sdp) { error in
         if let error {
-          NSLog("[WebRTC] Error setting remote SDP: %@", error.localizedDescription)
+          Log.webRTC.error("Error setting remote SDP: \(error.localizedDescription, privacy: .public)")
         }
       }
 
     case .candidate(let candidate):
       webRTCClient?.set(remoteCandidate: candidate) { error in
         if let error {
-          NSLog("[WebRTC] Error adding ICE candidate: %@", error.localizedDescription)
+          Log.webRTC.error("Error adding ICE candidate: \(error.localizedDescription, privacy: .public)")
         }
       }
 
     case .peerLeft:
-      NSLog("[WebRTC] Peer left")
+      Log.webRTC.notice("Peer left")
       connectionState = .waitingForPeer
 
     case .error(let msg):
       // If rejoin fails (room expired), fall back to creating a new room
       if savedRoomCode != nil && msg == "Room not found" {
-        NSLog("[WebRTC] Rejoin failed (room expired), creating new room")
+        Log.webRTC.notice("Rejoin failed (room expired), creating new room")
         savedRoomCode = nil
         signalingClient?.createRoom()
       } else {
@@ -234,7 +234,7 @@ class WebRTCSessionViewModel: ObservableObject {
     switch state {
     case .connected, .completed:
       connectionState = .connected
-      NSLog("[WebRTC] Peer connected")
+      Log.webRTC.notice("Peer connected")
     case .disconnected:
       connectionState = .waitingForPeer
     case .failed:
@@ -253,13 +253,13 @@ class WebRTCSessionViewModel: ObservableObject {
   fileprivate func handleRemoteVideoTrackReceived(_ track: RTCVideoTrack) {
     remoteVideoTrack = track
     hasRemoteVideo = true
-    NSLog("[WebRTC] Remote video track received")
+    Log.webRTC.notice("Remote video track received")
   }
 
   fileprivate func handleRemoteVideoTrackRemoved(_ track: RTCVideoTrack) {
     remoteVideoTrack = nil
     hasRemoteVideo = false
-    NSLog("[WebRTC] Remote video track removed")
+    Log.webRTC.notice("Remote video track removed")
   }
 }
 

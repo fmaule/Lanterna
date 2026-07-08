@@ -23,8 +23,7 @@ class ToolCallRouter {
     let callId = call.id
     let callName = call.name
 
-    NSLog("[ToolCall] Received: %@ (id: %@) args: %@",
-          callName, callId, String(describing: call.args))
+    Log.toolCall.info("Received: \(callName, privacy: .public) (id: \(callId, privacy: .public)) args: \(String(describing: call.args))")
 
     // Face-recognition tools are handled entirely on-device via
     // FaceRecognitionStore and never touch HermesBridge or the
@@ -36,8 +35,7 @@ class ToolCallRouter {
 
     // Circuit breaker: stop sending tool calls after repeated failures
     if consecutiveFailures >= maxConsecutiveFailures {
-      NSLog("[ToolCall] Circuit breaker open (%d consecutive failures), rejecting %@",
-            consecutiveFailures, callId)
+      Log.toolCall.notice("Circuit breaker open (\(self.consecutiveFailures) consecutive failures), rejecting \(callId, privacy: .public)")
       let errorResult: ToolResult = .failure(
         "Tool execution is temporarily unavailable after \(consecutiveFailures) consecutive failures. " +
         "Please tell the user you cannot complete this action right now and suggest they check their Hermes connection."
@@ -52,7 +50,7 @@ class ToolCallRouter {
       let result = await bridge.delegateTask(task: taskDesc, toolName: callName)
 
       guard !Task.isCancelled else {
-        NSLog("[ToolCall] Task %@ was cancelled, skipping response", callId)
+        Log.toolCall.info("Task \(callId, privacy: .public) was cancelled, skipping response")
         return
       }
 
@@ -63,8 +61,7 @@ class ToolCallRouter {
         self.consecutiveFailures += 1
       }
 
-      NSLog("[ToolCall] Result for %@ (id: %@): %@",
-            callName, callId, String(describing: result))
+      Log.toolCall.info("Result for \(callName, privacy: .public) (id: \(callId, privacy: .public)): \(String(describing: result))")
 
       let response = self.buildToolResponse(callId: callId, name: callName, result: result)
       sendResponse(response)
@@ -79,7 +76,7 @@ class ToolCallRouter {
   func cancelToolCalls(ids: [String]) {
     for id in ids {
       if let task = inFlightTasks[id] {
-        NSLog("[ToolCall] Cancelling in-flight call: %@", id)
+        Log.toolCall.info("Cancelling in-flight call: \(id, privacy: .public)")
         task.cancel()
         inFlightTasks.removeValue(forKey: id)
       }
@@ -90,7 +87,7 @@ class ToolCallRouter {
   /// Cancel all in-flight tool calls (on session stop)
   func cancelAll() {
     for (id, task) in inFlightTasks {
-      NSLog("[ToolCall] Cancelling in-flight call: %@", id)
+      Log.toolCall.info("Cancelling in-flight call: \(id, privacy: .public)")
       task.cancel()
     }
     inFlightTasks.removeAll()
@@ -115,12 +112,11 @@ class ToolCallRouter {
       let result = await self.resolveFaceToolResult(call)
 
       guard !Task.isCancelled else {
-        NSLog("[ToolCall] Task %@ was cancelled, skipping response", callId)
+        Log.toolCall.info("Task \(callId, privacy: .public) was cancelled, skipping response")
         return
       }
 
-      NSLog("[ToolCall] Result for %@ (id: %@): %@",
-            callName, callId, String(describing: result))
+      Log.toolCall.info("Result for \(callName, privacy: .public) (id: \(callId, privacy: .public)): \(String(describing: result))")
 
       let response = self.buildToolResponse(callId: callId, name: callName, result: result)
       sendResponse(response)

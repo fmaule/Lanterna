@@ -58,9 +58,9 @@ class AudioManager {
     try session.setActive(true)
     if SettingsManager.shared.speakerOutputEnabled {
       try session.overrideOutputAudioPort(.speaker)
-      NSLog("[Audio] Speaker output override: ON (iPhone speaker)")
+      Log.audio.notice("Speaker output override: ON (iPhone speaker)")
     }
-    NSLog("[Audio] Session mode: %@", useIPhoneMode ? "voiceChat (iPhone)" : "videoChat (glasses)")
+    Log.audio.notice("Session mode: \(useIPhoneMode ? "voiceChat (iPhone)" : "videoChat (glasses)", privacy: .public)")
 
     setupInterruptionHandling()
     setupAppLifecycleObservers()
@@ -81,17 +81,16 @@ class AudioManager {
     let inputNode = audioEngine.inputNode
     let inputNativeFormat = inputNode.outputFormat(forBus: 0)
 
-    NSLog("[Audio] Native input format: %@ sampleRate=%.0f channels=%d",
-          inputNativeFormat.commonFormat == .pcmFormatFloat32 ? "Float32" :
-          inputNativeFormat.commonFormat == .pcmFormatInt16 ? "Int16" : "Other",
-          inputNativeFormat.sampleRate, inputNativeFormat.channelCount)
+    let commonFormatName = inputNativeFormat.commonFormat == .pcmFormatFloat32 ? "Float32" :
+      inputNativeFormat.commonFormat == .pcmFormatInt16 ? "Int16" : "Other"
+    Log.audio.info("Native input format: \(commonFormatName, privacy: .public) sampleRate=\(inputNativeFormat.sampleRate) channels=\(inputNativeFormat.channelCount)")
 
     // Always tap in native format (Float32) and convert to Int16 PCM manually.
     // AVAudioEngine taps don't reliably convert between sample formats inline.
     let needsResample = inputNativeFormat.sampleRate != GeminiConfig.inputAudioSampleRate
         || inputNativeFormat.channelCount != GeminiConfig.audioChannels
 
-    NSLog("[Audio] Needs resample: %@", needsResample ? "YES" : "NO")
+    Log.audio.info("Needs resample: \(needsResample ? "YES" : "NO", privacy: .public)")
 
     sendQueue.async { self.accumulatedData = Data() }
 
@@ -121,7 +120,7 @@ class AudioManager {
           interleaved: false
         )!
         guard let resampled = self.convertBuffer(buffer, using: converter, targetFormat: resampleFormat) else {
-          if tapCount <= 3 { NSLog("[Audio] Resample failed for tap #%d", tapCount) }
+          if tapCount <= 3 { Log.audio.error("Resample failed for tap #\(tapCount)") }
           return
         }
         pcmData = self.float32BufferToInt16Data(resampled)
@@ -136,8 +135,7 @@ class AudioManager {
           let chunk = self.accumulatedData
           self.accumulatedData = Data()
           if tapCount <= 3 {
-            NSLog("[Audio] Sending chunk: %d bytes (~%dms)",
-                  chunk.count, chunk.count / 32)  // 16kHz * 2 bytes = 32 bytes/ms
+            Log.audio.debug("Sending chunk: \(chunk.count) bytes (~\(chunk.count / 32)ms)")
           }
           self.onAudioCaptured?(chunk)
         }
@@ -256,9 +254,9 @@ class AudioManager {
       queue: .main
     ) { [weak self] _ in
       guard let self else { return }
-      NSLog("[Audio] App will enter foreground")
+      Log.audio.info("App will enter foreground")
       if self.isCapturing && !self.audioEngine.isRunning {
-        NSLog("[Audio] Audio engine stopped while backgrounded, attempting reset")
+        Log.audio.notice("Audio engine stopped while backgrounded, attempting reset")
         self.attemptAudioReset()
       }
     }
@@ -267,13 +265,13 @@ class AudioManager {
   private func handleInterruption(type: AVAudioSession.InterruptionType, shouldResume: Bool) {
     switch type {
     case .began:
-      NSLog("[Audio] Audio interruption began (e.g. phone call)")
+      Log.audio.notice("Audio interruption began (e.g. phone call)")
       wasCapturingBeforeInterruption = isCapturing
       if isCapturing {
         audioEngine.pause()
       }
     case .ended:
-      NSLog("[Audio] Audio interruption ended (shouldResume=%@)", shouldResume ? "true" : "false")
+      Log.audio.notice("Audio interruption ended (shouldResume=\(shouldResume ? "true" : "false", privacy: .public))")
       if wasCapturingBeforeInterruption {
         resumeAudioAfterInterruption()
       }
@@ -285,34 +283,34 @@ class AudioManager {
   private func handleRouteChange(reason: AVAudioSession.RouteChangeReason) {
     switch reason {
     case .newDeviceAvailable:
-      NSLog("[Audio] New audio device available")
+      Log.audio.info("New audio device available")
     case .oldDeviceUnavailable:
-      NSLog("[Audio] Audio device removed")
+      Log.audio.notice("Audio device removed")
       if isCapturing {
         attemptAudioReset()
       }
     case .categoryChange, .override, .wakeFromSleep, .routeConfigurationChange:
-      NSLog("[Audio] Audio route change: %d", reason.rawValue)
+      Log.audio.info("Audio route change: \(reason.rawValue)")
     default:
       break
     }
   }
 
   private func resumeAudioAfterInterruption() {
-    NSLog("[Audio] Resuming audio after interruption")
+    Log.audio.notice("Resuming audio after interruption")
     let audioSession = AVAudioSession.sharedInstance()
     do {
       try audioSession.setActive(true)
       try audioEngine.start()
-      NSLog("[Audio] Audio resumed successfully")
+      Log.audio.notice("Audio resumed successfully")
     } catch {
-      NSLog("[Audio] Failed to resume audio: %@", error.localizedDescription)
+      Log.audio.error("Failed to resume audio: \(error.localizedDescription, privacy: .public)")
       attemptAudioReset()
     }
   }
 
   private func attemptAudioReset() {
-    NSLog("[Audio] Attempting audio reset")
+    Log.audio.notice("Attempting audio reset")
     let wasCapturing = isCapturing
 
     if audioEngine.isRunning {
@@ -325,9 +323,9 @@ class AudioManager {
       do {
         try setupAudioSession(useIPhoneMode: useIPhoneMode)
         try startCapture()
-        NSLog("[Audio] Audio reset successful")
+        Log.audio.notice("Audio reset successful")
       } catch {
-        NSLog("[Audio] Audio reset failed: %@", error.localizedDescription)
+        Log.audio.error("Audio reset failed: \(error.localizedDescription, privacy: .public)")
       }
     }
   }

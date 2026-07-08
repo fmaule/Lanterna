@@ -36,9 +36,7 @@ struct LanternaApp: App {
     do {
       try Wearables.configure()
     } catch {
-      #if DEBUG
-      NSLog("[Lanterna] Failed to configure Wearables SDK: \(error)")
-      #endif
+      Log.app.error("Failed to configure Wearables SDK: \(String(describing: error), privacy: .public)")
     }
     let wearables = Wearables.shared
     self.wearables = wearables

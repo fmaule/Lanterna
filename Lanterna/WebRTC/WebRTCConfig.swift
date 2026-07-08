@@ -49,7 +49,7 @@ enum WebRTCConfig {
             servers.append(
               RTCIceServer(urlStrings: urls, username: username, credential: credential))
           }
-          NSLog("[WebRTC] TURN credentials loaded (%d servers)", iceServersArray.count)
+          Log.webRTC.info("TURN credentials loaded (\(iceServersArray.count) servers)")
         }
         // Handle flat format: { urls, username, credential }
         else if let urls = json["urls"] as? [String],
@@ -58,11 +58,11 @@ enum WebRTCConfig {
         {
           servers.append(
             RTCIceServer(urlStrings: urls, username: username, credential: credential))
-          NSLog("[WebRTC] TURN credentials loaded (%d URLs)", urls.count)
+          Log.webRTC.info("TURN credentials loaded (\(urls.count) URLs)")
         }
       }
     } catch {
-      NSLog("[WebRTC] Failed to fetch TURN credentials: %@", error.localizedDescription)
+      Log.webRTC.error("Failed to fetch TURN credentials: \(error.localizedDescription, privacy: .public)")
     }
 
     return servers
