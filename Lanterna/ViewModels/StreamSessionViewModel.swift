@@ -14,6 +14,7 @@
 // video frame handling, photo capture, and error handling.
 //
 
+import AVFoundation
 import CoreImage
 import CoreMedia
 import CoreVideo
@@ -33,6 +34,11 @@ enum StreamingMode {
   case iPhone
 }
 
+enum IPhoneCameraPosition {
+  case back
+  case front
+}
+
 @MainActor
 class StreamSessionViewModel: ObservableObject {
   @Published var currentVideoFrame: UIImage?
@@ -43,6 +49,7 @@ class StreamSessionViewModel: ObservableObject {
   @Published var hasActiveDevice: Bool = false
   @Published var streamingMode: StreamingMode = .glasses
   @Published var selectedResolution: StreamingResolution = .low
+  @Published var iPhoneCameraPosition: IPhoneCameraPosition = .back
 
   var isStreaming: Bool {
     streamingStatus != .stopped
@@ -373,6 +380,8 @@ class StreamSessionViewModel: ObservableObject {
 
   private func startIPhoneSession() {
     streamingMode = .iPhone
+    iPhoneCameraPosition = .back
+    pinchBaseZoom = 1.0
     let camera = IPhoneCameraManager()
     camera.onFrameCaptured = { [weak self] image in
       Task { @MainActor [weak self] in
@@ -383,6 +392,14 @@ class StreamSessionViewModel: ObservableObject {
         }
         self.geminiSessionVM?.sendVideoFrameIfThrottled(image: image)
         self.webrtcSessionVM?.pushVideoFrame(image)
+      }
+    }
+    camera.onPositionChanged = { [weak self] position in
+      Task { @MainActor [weak self] in
+        guard let self else { return }
+        self.iPhoneCameraPosition = position == .front ? .front : .back
+        // Zoom factor resets to 1.0 on the newly activated device.
+        self.pinchBaseZoom = 1.0
       }
     }
     camera.start()
@@ -398,8 +415,35 @@ class StreamSessionViewModel: ObservableObject {
     hasReceivedFirstFrame = false
     streamingStatus = .stopped
     streamingMode = .glasses
+    iPhoneCameraPosition = .back
+    pinchBaseZoom = 1.0
     NSLog("[Stream] iPhone camera mode stopped")
   }
+
+  // MARK: - iPhone Camera Controls
+
+  /// Toggle between front and back cameras. No-op unless we're in iPhone mode.
+  func switchIPhoneCamera() {
+    iPhoneCameraManager?.switchCamera()
+  }
+
+  /// Focus at a normalized point in the portrait preview (origin top-left, [0,1]).
+  func focusIPhoneCamera(atNormalizedPortraitPoint point: CGPoint) {
+    iPhoneCameraManager?.setFocus(atNormalizedPortraitPoint: point)
+  }
+
+  /// Continuous-zoom helper for a `MagnificationGesture`.
+  /// Call `beginIPhoneZoom()` at gesture start and `updateIPhoneZoom(scale:)` on change.
+  func beginIPhoneZoom() {
+    pinchBaseZoom = iPhoneCameraManager?.currentZoomFactor ?? 1.0
+  }
+
+  func updateIPhoneZoom(scale: CGFloat) {
+    guard let camera = iPhoneCameraManager else { return }
+    camera.setZoom(factor: pinchBaseZoom * scale)
+  }
+
+  private var pinchBaseZoom: CGFloat = 1.0
 
   func dismissError() {
     showError = false

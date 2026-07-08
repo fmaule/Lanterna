@@ -2,7 +2,10 @@ import Foundation
 import WebRTC
 
 enum WebRTCConfig {
-  static let signalingServerURL = Secrets.webrtcSignalingURL
+  /// Live-read the user's configured signaling URL from settings (falls back to Secrets).
+  static var signalingServerURL: String {
+    SettingsManager.shared.webrtcSignalingURL
+  }
 
   static let stunServers = [
     "stun:stun.l.google.com:19302",

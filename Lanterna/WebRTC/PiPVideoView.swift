@@ -8,6 +8,7 @@ struct PiPVideoView: View {
   let localFrame: UIImage?
   let remoteVideoTrack: RTCVideoTrack?
   let hasRemoteVideo: Bool
+  var mirrorLocal: Bool = false
 
   @State private var isSwapped: Bool = false
 
@@ -67,6 +68,7 @@ struct PiPVideoView: View {
         Image(uiImage: frame)
           .resizable()
           .aspectRatio(contentMode: .fill)
+          .scaleEffect(x: mirrorLocal ? -1 : 1, y: 1)
       } else {
         Color.black
       }
@@ -80,6 +82,7 @@ struct PiPVideoView: View {
         Image(uiImage: frame)
           .resizable()
           .aspectRatio(contentMode: .fill)
+          .scaleEffect(x: mirrorLocal ? -1 : 1, y: 1)
       } else {
         Color.black
       }
