@@ -33,13 +33,24 @@ enum FaceRecognitionStore {
   }
 
   /// One remembered person: a display name plus their archived feature
-  /// print (as produced by `FaceRecognitionService.generateFeaturePrintData`).
-  /// This is a separate, simpler struct of our own -- not an archive of
-  /// `FeaturePrintObservation` itself -- persisted as a plist.
+  /// print (as produced by `FaceRecognitionService.generateFeaturePrintData`),
+  /// plus an optional JPEG thumbnail of the face crop captured at
+  /// `remember(name:image:)` time. `thumbnailData` is optional so entries
+  /// persisted before thumbnails were introduced decode without a
+  /// migration — those show a placeholder in Settings.
   private struct KnownFace: Codable {
     let name: String
     let featurePrintData: Data
+    var thumbnailData: Data?
   }
+
+  /// Longest edge of the persisted face thumbnail, in pixels. Small enough
+  /// to keep the on-disk plist tiny (a few KB per face) but large enough to
+  /// still be recognizable in a Settings row.
+  private static let thumbnailMaxDimension: CGFloat = 128
+
+  /// JPEG compression quality for persisted thumbnails.
+  private static let thumbnailCompressionQuality: CGFloat = 0.7
 
   /// Distances below this count as the same person. This is an empirical
   /// heuristic over Vision's feature-print embedding space, not a
@@ -119,11 +130,40 @@ enum FaceRecognitionStore {
       throw FaceRecognitionStoreError.noFaceFound
     }
     let featurePrintData = try await FaceRecognitionService.generateFeaturePrintData(for: faceImage)
+    let thumbnailData = encodedThumbnail(from: faceImage)
 
     var faces = loadFaces()
     faces.removeAll { $0.name == name }
-    faces.append(KnownFace(name: name, featurePrintData: featurePrintData))
+    faces.append(
+      KnownFace(
+        name: name,
+        featurePrintData: featurePrintData,
+        thumbnailData: thumbnailData
+      )
+    )
     try persist(faces)
+  }
+
+  /// Downscales the detected face crop and JPEG-encodes it for compact
+  /// on-disk storage. Returns `nil` if either step fails — the caller
+  /// treats that as "no thumbnail available" rather than an error, since
+  /// the recognition feature print (the actual matching payload) is
+  /// unaffected.
+  private static func encodedThumbnail(from cgImage: CGImage) -> Data? {
+    let sourceWidth = CGFloat(cgImage.width)
+    let sourceHeight = CGFloat(cgImage.height)
+    let longestEdge = max(sourceWidth, sourceHeight)
+    let scale = longestEdge > thumbnailMaxDimension ? thumbnailMaxDimension / longestEdge : 1.0
+    let targetSize = CGSize(width: sourceWidth * scale, height: sourceHeight * scale)
+
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = 1
+    format.opaque = true
+    let renderer = UIGraphicsImageRenderer(size: targetSize, format: format)
+    let scaled = renderer.image { _ in
+      UIImage(cgImage: cgImage).draw(in: CGRect(origin: .zero, size: targetSize))
+    }
+    return scaled.jpegData(compressionQuality: thumbnailCompressionQuality)
   }
 
   /// Detects the face in `image` and compares it against every stored
@@ -166,6 +206,18 @@ enum FaceRecognitionStore {
   /// array.
   static func allNames() -> [String] {
     loadFaces().map(\.name)
+  }
+
+  /// Persisted JPEG thumbnail of the face crop remembered under `name`, if
+  /// any. Returns `nil` when the name isn't known, when the entry pre-dates
+  /// thumbnail persistence, or when the stored bytes fail to decode.
+  static func thumbnail(name: String) -> UIImage? {
+    guard let face = loadFaces().first(where: { $0.name == name }),
+      let data = face.thumbnailData
+    else {
+      return nil
+    }
+    return UIImage(data: data)
   }
 
   /// Removes the stored entry for `name`, if any. No-op (not an error) if
