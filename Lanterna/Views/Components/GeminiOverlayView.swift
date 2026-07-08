@@ -50,26 +50,6 @@ struct GeminiStatusBar: View {
   }
 }
 
-struct StatusPill: View {
-  let color: Color
-  let text: String
-
-  var body: some View {
-    HStack(spacing: 6) {
-      Circle()
-        .fill(color)
-        .frame(width: 8, height: 8)
-      Text(text)
-        .font(.system(size: 12, weight: .medium))
-        .foregroundColor(.white)
-    }
-    .padding(.horizontal, 12)
-    .padding(.vertical, 6)
-    .background(Color.black.opacity(0.6))
-    .cornerRadius(16)
-  }
-}
-
 struct TranscriptView: View {
   let userText: String
   let aiText: String

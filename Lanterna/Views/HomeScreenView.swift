@@ -22,7 +22,7 @@ struct HomeScreenView: View {
 
   var body: some View {
     ZStack {
-      Color.white.edgesIgnoringSafeArea(.all)
+      AnimatedBackground()
 
       VStack(spacing: 12) {
         HStack {
@@ -33,7 +33,7 @@ struct HomeScreenView: View {
             Image(systemName: "gearshape")
               .resizable()
               .aspectRatio(contentMode: .fit)
-              .foregroundColor(.black)
+              .foregroundColor(.white)
               .frame(width: 24, height: 24)
           }
         }
@@ -42,25 +42,30 @@ struct HomeScreenView: View {
 
         Image(.cameraAccessIcon)
           .resizable()
+          .renderingMode(.template)
+          .foregroundColor(.white)
           .aspectRatio(contentMode: .fit)
           .frame(width: 120)
 
-        VStack(spacing: 12) {
-          HomeTipItemView(
-            resource: .smartGlassesIcon,
-            title: "Video Capture",
-            text: "Record videos directly from your glasses, from your point of view."
-          )
-          HomeTipItemView(
-            resource: .soundIcon,
-            title: "Open-Ear Audio",
-            text: "Hear notifications while keeping your ears open to the world around you."
-          )
-          HomeTipItemView(
-            resource: .walkingIcon,
-            title: "Enjoy On-the-Go",
-            text: "Stay hands-free while you move through your day. Move freely, stay connected."
-          )
+        GlassCard {
+          VStack(spacing: 12) {
+            HomeTipItemView(
+              resource: .smartGlassesIcon,
+              title: "Video Capture",
+              text: "Record videos directly from your glasses, from your point of view."
+            )
+            HomeTipItemView(
+              resource: .soundIcon,
+              title: "Open-Ear Audio",
+              text: "Hear notifications while keeping your ears open to the world around you."
+            )
+            HomeTipItemView(
+              resource: .walkingIcon,
+              title: "Enjoy On-the-Go",
+              text: "Stay hands-free while you move through your day. Move freely, stay connected."
+            )
+          }
+          .padding(16)
         }
 
         Spacer()
@@ -68,7 +73,7 @@ struct HomeScreenView: View {
         VStack(spacing: 20) {
           Text("You'll be redirected to the Meta AI app to confirm your connection.")
             .font(.system(size: 14))
-            .foregroundColor(.gray)
+            .foregroundColor(.white.opacity(0.7))
             .multilineTextAlignment(.center)
             .fixedSize(horizontal: false, vertical: true)
             .padding(.horizontal, 12)
@@ -92,6 +97,7 @@ struct HomeScreenView: View {
       }
       .padding(.all, 24)
     }
+    .preferredColorScheme(.dark)
     .sheet(isPresented: $showSettings) {
       SettingsView()
     }
@@ -109,7 +115,7 @@ struct HomeTipItemView: View {
       Image(resource)
         .resizable()
         .renderingMode(.template)
-        .foregroundColor(.black)
+        .foregroundColor(.white)
         .aspectRatio(contentMode: .fit)
         .frame(width: 24)
         .padding(.leading, 4)
@@ -118,11 +124,11 @@ struct HomeTipItemView: View {
       VStack(alignment: .leading, spacing: 6) {
         Text(title)
           .font(.system(size: 18, weight: .semibold))
-          .foregroundColor(.black)
+          .foregroundColor(.white)
 
         Text(text)
           .font(.system(size: 15))
-          .foregroundColor(.gray)
+          .foregroundColor(.white.opacity(0.75))
       }
       Spacer()
     }

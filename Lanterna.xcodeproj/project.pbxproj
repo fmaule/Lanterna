@@ -47,6 +47,15 @@
 		A1B2C3D42F0A000200000003 /* AudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F0A000100000003 /* AudioManager.swift */; };
 		A1B2C3D42F0A000200000004 /* GeminiSessionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F0A000100000004 /* GeminiSessionViewModel.swift */; };
 		A1B2C3D42F0A000200000005 /* GeminiOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D42F0A000100000005 /* GeminiOverlayView.swift */; };
+		9DAE1235000000000000B001 /* GlassCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DAE1235000000000000C001 /* GlassCard.swift */; };
+		9DAE1235000000000000B002 /* AnimatedBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DAE1235000000000000C002 /* AnimatedBackground.swift */; };
+		9DAE1235000000000000B003 /* StatusPill.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DAE1235000000000000C003 /* StatusPill.swift */; };
+		9DAE1235000000000000B004 /* WaveformVisualizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DAE1235000000000000C004 /* WaveformVisualizer.swift */; };
+		9DAE1236000000000000B001 /* GeminiSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DAE1236000000000000C001 /* GeminiSettingsView.swift */; };
+		9DAE1236000000000000B002 /* OpenClawSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DAE1236000000000000C002 /* OpenClawSettingsView.swift */; };
+		9DAE1236000000000000B003 /* HermesSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DAE1236000000000000C003 /* HermesSettingsView.swift */; };
+		9DAE1236000000000000B004 /* WebRTCSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DAE1236000000000000C004 /* WebRTCSettingsView.swift */; };
+		9DAE1236000000000000B005 /* AudioVideoSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DAE1236000000000000C005 /* AudioVideoSettingsView.swift */; };
 		CBC48BC700A60582CB69D61C /* MWDATMockDevice in Frameworks */ = {isa = PBXBuildFile; productRef = 60D1DDC41F3F6B19391A555E /* MWDATMockDevice */; };
 		E66D30242E7DA71900470B48 /* MockDeviceKitButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = E66D30232E7DA71900470B48 /* MockDeviceKitButton.swift */; };
 		E6A188482EB918740097D0E1 /* StreamView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A188472EB918740097D0E1 /* StreamView.swift */; };
@@ -119,6 +128,15 @@
 		A1B2C3D42F0A000100000003 /* AudioManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioManager.swift; sourceTree = "<group>"; };
 		A1B2C3D42F0A000100000004 /* GeminiSessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiSessionViewModel.swift; sourceTree = "<group>"; };
 		A1B2C3D42F0A000100000005 /* GeminiOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiOverlayView.swift; sourceTree = "<group>"; };
+		9DAE1235000000000000C001 /* GlassCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlassCard.swift; sourceTree = "<group>"; };
+		9DAE1235000000000000C002 /* AnimatedBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedBackground.swift; sourceTree = "<group>"; };
+		9DAE1235000000000000C003 /* StatusPill.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusPill.swift; sourceTree = "<group>"; };
+		9DAE1235000000000000C004 /* WaveformVisualizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaveformVisualizer.swift; sourceTree = "<group>"; };
+		9DAE1236000000000000C001 /* GeminiSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeminiSettingsView.swift; sourceTree = "<group>"; };
+		9DAE1236000000000000C002 /* OpenClawSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenClawSettingsView.swift; sourceTree = "<group>"; };
+		9DAE1236000000000000C003 /* HermesSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HermesSettingsView.swift; sourceTree = "<group>"; };
+		9DAE1236000000000000C004 /* WebRTCSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebRTCSettingsView.swift; sourceTree = "<group>"; };
+		9DAE1236000000000000C005 /* AudioVideoSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioVideoSettingsView.swift; sourceTree = "<group>"; };
 		E66D30232E7DA71900470B48 /* MockDeviceKitButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockDeviceKitButton.swift; sourceTree = "<group>"; };
 		E699CC952E8150670052C240 /* LanternaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LanternaTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E6A188472EB918740097D0E1 /* StreamView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamView.swift; sourceTree = "<group>"; };
@@ -246,6 +264,10 @@
 				8FFD5FF32E8422580035E446 /* CustomButton.swift */,
 				E6DA45172E79A63100E3F688 /* CardView.swift */,
 				A1B2C3D42F0A000100000005 /* GeminiOverlayView.swift */,
+				9DAE1235000000000000C001 /* GlassCard.swift */,
+				9DAE1235000000000000C002 /* AnimatedBackground.swift */,
+				9DAE1235000000000000C003 /* StatusPill.swift */,
+				9DAE1235000000000000C004 /* WaveformVisualizer.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -280,6 +302,11 @@
 				9DD894AF2F4047630090B9B9 /* SettingsManager.swift */,
 				9DD894B42F4047630090B9B9 /* KeychainManager.swift */,
 				9DD894B02F4047630090B9B9 /* SettingsView.swift */,
+				9DAE1236000000000000C001 /* GeminiSettingsView.swift */,
+				9DAE1236000000000000C002 /* OpenClawSettingsView.swift */,
+				9DAE1236000000000000C003 /* HermesSettingsView.swift */,
+				9DAE1236000000000000C004 /* WebRTCSettingsView.swift */,
+				9DAE1236000000000000C005 /* AudioVideoSettingsView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -462,6 +489,15 @@
 				9DD894B52F4047630090B9B9 /* KeychainManager.swift in Sources */,
 				9DD894B32F4047630090B9B9 /* SettingsView.swift in Sources */,
 				A1B2C3D42F0A000200000005 /* GeminiOverlayView.swift in Sources */,
+				9DAE1235000000000000B001 /* GlassCard.swift in Sources */,
+				9DAE1235000000000000B002 /* AnimatedBackground.swift in Sources */,
+				9DAE1235000000000000B003 /* StatusPill.swift in Sources */,
+				9DAE1235000000000000B004 /* WaveformVisualizer.swift in Sources */,
+				9DAE1236000000000000B001 /* GeminiSettingsView.swift in Sources */,
+				9DAE1236000000000000B002 /* OpenClawSettingsView.swift in Sources */,
+				9DAE1236000000000000B003 /* HermesSettingsView.swift in Sources */,
+				9DAE1236000000000000B004 /* WebRTCSettingsView.swift in Sources */,
+				9DAE1236000000000000B005 /* AudioVideoSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

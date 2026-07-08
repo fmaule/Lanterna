@@ -25,7 +25,7 @@ struct NonStreamView: View {
 
   var body: some View {
     ZStack {
-      Color.black.edgesIgnoringSafeArea(.all)
+      AnimatedBackground()
 
       VStack {
         HStack {
@@ -129,6 +129,7 @@ struct NonStreamView: View {
     .sheet(isPresented: $showSettings) {
       SettingsView()
     }
+    .preferredColorScheme(.dark)
     .sheet(isPresented: $wearablesVM.showGettingStartedSheet) {
       if #available(iOS 16.0, *) {
         GettingStartedSheetView(height: $sheetHeight)
