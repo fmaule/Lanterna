@@ -75,12 +75,20 @@ npm install
 npm start
 ```
 
+### Deploying
+
+Runs as a Dokploy Application (git-deployed from this repo, `buildPath: /server`), joined to
+the `dokploy-network` with no public domain -- it's reached only through a Tailscale
+sidecar (`tailscale serve`) that terminates HTTPS at a dedicated hostname and proxies to
+the container's internal port 8080. No env vars are required (TURN credentials and `PORT`
+both default sensibly in `index.js`).
+
 ## Configuration
 
 In `Secrets.swift`:
 
 ```swift
-static let webrtcSignalingURL = "ws://YOUR_MAC_IP:8080"
+static let webrtcSignalingURL = "wss://beacon.your-tailnet.ts.net"
 ```
 
 The signaling URL must be set for the feature to appear in the app. Supports both `ws://` and `wss://`.
