@@ -85,12 +85,12 @@ enum ToolCallStatus: Equatable {
 enum ToolDeclarations {
 
   static func allDeclarations() -> [[String: Any]] {
-    return [execute]
+    return [execute, rememberFace, identifyFace]
   }
 
   static let execute: [String: Any] = [
     "name": "execute",
-    "description": "Your only way to take action. You have no memory, storage, or ability to do anything on your own -- use this tool for everything: sending messages, searching the web, adding to lists, setting reminders, creating notes, research, drafts, scheduling, smart home control, app interactions, or any request that goes beyond answering a question. When in doubt, use this tool.",
+    "description": "Your only way to take action. You have no memory, storage, or ability to do anything on your own -- use this tool for everything: sending messages, searching the web, adding to lists, setting reminders, creating notes, research, drafts, scheduling, smart home control, app interactions, or any request that goes beyond answering a question. For remembering or identifying a person's face, use remember_face or identify_face instead. When in doubt, use this tool.",
     "parameters": [
       "type": "object",
       "properties": [
@@ -100,6 +100,33 @@ enum ToolDeclarations {
         ]
       ],
       "required": ["task"]
+    ] as [String: Any],
+    "behavior": "BLOCKING"
+  ]
+
+  static let rememberFace: [String: Any] = [
+    "name": "remember_face",
+    "description": "Remember the face of the person currently visible in the camera/glasses video feed under the given name for later identification. Use this when the user says things like 'remember this person as Alex' or 'this is my friend Sam, remember them'.",
+    "parameters": [
+      "type": "object",
+      "properties": [
+        "name": [
+          "type": "string",
+          "description": "The name to associate with the face currently visible in the video feed."
+        ]
+      ],
+      "required": ["name"]
+    ] as [String: Any],
+    "behavior": "BLOCKING"
+  ]
+
+  static let identifyFace: [String: Any] = [
+    "name": "identify_face",
+    "description": "Identify the person currently visible in the camera/glasses video feed by comparing against previously remembered faces. Use this when the user asks 'who is this?', 'do you know this person?', or 'who am I looking at?'.",
+    "parameters": [
+      "type": "object",
+      "properties": [:] as [String: Any],
+      "required": []
     ] as [String: Any],
     "behavior": "BLOCKING"
   ]

@@ -22,6 +22,7 @@ struct SettingsView: View {
   @State private var hermesTestInput: String = "say hi in one short sentence"
   @State private var hermesTestOutput: String = ""
   @State private var hermesTestInFlight: Bool = false
+  @State private var knownFaceNames: [String] = []
 
   var body: some View {
     NavigationView {
@@ -192,6 +193,21 @@ struct SettingsView: View {
           Toggle("Proactive Notifications", isOn: $proactiveNotificationsEnabled)
         }
 
+        if #available(iOS 18.0, *) {
+          Section(header: Text("Known Faces"), footer: Text("People remembered via voice command (\"remember this person as ...\"). Removing someone here means they'll need to be re-introduced.")) {
+            if knownFaceNames.isEmpty {
+              Text("No remembered faces yet.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            } else {
+              ForEach(knownFaceNames, id: \.self) { name in
+                Text(name)
+              }
+              .onDelete(perform: deleteKnownFaces)
+            }
+          }
+        }
+
         Section {
           Button("Reset to Defaults") {
             showResetConfirmation = true
@@ -245,6 +261,17 @@ struct SettingsView: View {
     speakerOutputEnabled = settings.speakerOutputEnabled
     videoStreamingEnabled = settings.videoStreamingEnabled
     proactiveNotificationsEnabled = settings.proactiveNotificationsEnabled
+    if #available(iOS 18.0, *) {
+      knownFaceNames = FaceRecognitionStore.allNames()
+    }
+  }
+
+  @available(iOS 18.0, *)
+  private func deleteKnownFaces(at offsets: IndexSet) {
+    for index in offsets {
+      FaceRecognitionStore.forget(name: knownFaceNames[index])
+    }
+    knownFaceNames = FaceRecognitionStore.allNames()
   }
 
   private func save() {

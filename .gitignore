@@ -15,3 +15,6 @@ Lanterna/Secrets.swift
 # Node server
 server/node_modules/
 server/package-lock.json
+
+# Subagent-driven-development scratch (progress ledger, task briefs/reports)
+.superpowers/

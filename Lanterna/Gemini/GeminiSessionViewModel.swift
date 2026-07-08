@@ -18,6 +18,7 @@ class GeminiSessionViewModel: ObservableObject {
   private let eventClient = OpenClawEventClient()
   private var lastVideoFrameTime: Date = .distantPast
   private var stateObservation: Task<Void, Never>?
+  private(set) var latestFrame: UIImage?
 
   var streamingMode: StreamingMode = .glasses
 
@@ -89,7 +90,7 @@ class GeminiSessionViewModel: ObservableObject {
     hermesBridge.resetSession()
 
     // Wire tool call handling
-    toolCallRouter = ToolCallRouter(bridge: hermesBridge)
+    toolCallRouter = ToolCallRouter(bridge: hermesBridge, currentFrameProvider: { [weak self] in self?.latestFrame })
 
     geminiService.onToolCall = { [weak self] toolCall in
       guard let self else { return }
@@ -193,6 +194,7 @@ class GeminiSessionViewModel: ObservableObject {
   }
 
   func sendVideoFrameIfThrottled(image: UIImage) {
+    latestFrame = image
     guard SettingsManager.shared.videoStreamingEnabled else { return }
     guard isGeminiActive, connectionState == .ready else { return }
     let now = Date()
