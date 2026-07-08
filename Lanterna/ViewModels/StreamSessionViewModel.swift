@@ -50,6 +50,10 @@ class StreamSessionViewModel: ObservableObject {
   @Published var streamingMode: StreamingMode = .glasses
   @Published var selectedResolution: StreamingResolution = .low
   @Published var iPhoneCameraPosition: IPhoneCameraPosition = .back
+  /// True when the last session-start attempt failed with
+  /// `DeviceSessionError.datAppOnTheGlassesUpdateRequired`. Wire this to a
+  /// button that calls `wearablesVM.openDATGlassesAppUpdate()`.
+  @Published var requiresDATAppUpdate: Bool = false
 
   var isStreaming: Bool {
     streamingStatus != .stopped
@@ -169,6 +173,9 @@ class StreamSessionViewModel: ObservableObject {
       Task { @MainActor [weak self] in
         guard let self else { return }
         Log.stream.error("session error: \(String(describing: error), privacy: .public) (description: \(error.description, privacy: .public))")
+        if case .datAppOnTheGlassesUpdateRequired = error {
+          self.requiresDATAppUpdate = true
+        }
         showError(formatSessionError(error))
         // Any session-level error means the session is no longer trustworthy.
         // Drop it so the next start attempt creates a fresh one instead of
@@ -291,13 +298,14 @@ class StreamSessionViewModel: ObservableObject {
       }
       showError("Permission denied")
     } catch {
-      showError("Permission error: \(error.description)")
+      showError("Permission error: \(error.localizedDescription)")
     }
   }
 
   func startSession() async {
     guard streamingMode == .glasses else { return }
     streamingStatus = .waiting
+    requiresDATAppUpdate = false
 
     // Wait for a device to become available before creating a session.
     if deviceSelector.activeDevice == nil {
@@ -341,24 +349,12 @@ class StreamSessionViewModel: ObservableObject {
       // DeviceSession.start() is synchronous in DAT SDK 0.8 — it only kicks the
       // state machine (idle → starting → started). addStream() requires the
       // session to actually be started, otherwise it returns nil.
+      //
+      // Mirror the 0.8 sample's DeviceSessionManager: race stateStream against
+      // errorStream so a start-time error (e.g. `datAppOnTheGlassesUpdateRequired`)
+      // is raised immediately instead of hanging until stateStream closes.
       if session.state != .started {
-        var reachedStarted = false
-        for await state in session.stateStream() {
-          Log.stream.debug("awaiting .started, got \(String(describing: state), privacy: .public)")
-          if state == .started {
-            reachedStarted = true
-            break
-          }
-          if state == .stopped {
-            break
-          }
-        }
-        guard reachedStarted else {
-          Log.stream.error("session never reached .started (final state=\(String(describing: session.state), privacy: .public))")
-          showError("Device session failed to start.")
-          teardownSession()
-          return
-        }
+        try await waitForSessionStart(session: session)
       }
 
       guard let newStream = try session.addStream(config: currentStreamConfiguration()) else {
@@ -371,10 +367,65 @@ class StreamSessionViewModel: ObservableObject {
       attachStreamListeners(newStream)
       Log.stream.info("Calling stream.start() (codec=\(String(describing: self.currentStreamConfiguration().videoCodec), privacy: .public), resolution=\(self.resolutionLabel, privacy: .public))")
       newStream.start()
-    } catch {
+    } catch let error as DeviceSessionError {
       Log.stream.error("DeviceSessionError: \(error.description, privacy: .public)")
-      showError("Failed to start session: \(error.description)")
+      if case .datAppOnTheGlassesUpdateRequired = error {
+        requiresDATAppUpdate = true
+      }
+      // Prefer localizedDescription for user-facing text; description is
+      // English-only and intended for logs.
+      showError("Failed to start session: \(error.localizedDescription)")
       teardownSession()
+    } catch {
+      Log.stream.error("Session start failed: \(String(describing: error), privacy: .public)")
+      showError("Failed to start session: \(error.localizedDescription)")
+      teardownSession()
+    }
+  }
+
+  /// Waits for `session` to reach `.started`, throwing the first
+  /// `DeviceSessionError` emitted on `errorStream()` if it fires first.
+  ///
+  /// Replicates the DAT 0.8 sample's `DeviceSessionManager.waitForSessionStart`
+  /// so DAM-related startup errors surface immediately instead of hanging on
+  /// a stateStream that never advances past `.starting`.
+  private func waitForSessionStart(session: DeviceSession) async throws(DeviceSessionError) {
+    // stateStream doesn't buffer — snapshot the current state first in case
+    // the session flipped to .started before we could start awaiting.
+    if session.state == .started { return }
+
+    let stateStream = session.stateStream()
+    let errorStream = session.errorStream()
+
+    do {
+      try await withThrowingTaskGroup(of: Void.self) { group in
+        group.addTask {
+          for await state in stateStream {
+            Log.stream.debug("awaiting .started, got \(String(describing: state), privacy: .public)")
+            if state == .started { return }
+            if state == .stopped {
+              throw DeviceSessionError.unexpectedError(description: "The session failed to start.")
+            }
+          }
+          if Task.isCancelled { return }
+          throw DeviceSessionError.unexpectedError(description: "The session failed to start.")
+        }
+
+        group.addTask {
+          for await error in errorStream {
+            throw error
+          }
+          if Task.isCancelled { return }
+          throw DeviceSessionError.unexpectedError(description: "The session failed to start.")
+        }
+
+        _ = try await group.next()
+        group.cancelAll()
+      }
+    } catch let error as DeviceSessionError {
+      throw error
+    } catch {
+      throw .unexpectedError(description: error.localizedDescription)
     }
   }
 

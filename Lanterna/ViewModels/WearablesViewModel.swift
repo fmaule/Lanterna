@@ -30,11 +30,13 @@ class WearablesViewModel: ObservableObject {
   @Published var showError: Bool = false
   @Published var errorMessage: String = ""
   @Published var skipToIPhoneMode: Bool = false
+  @Published var requiresFirmwareUpdate: Bool = false
 
   private var registrationTask: Task<Void, Never>?
   private var deviceStreamTask: Task<Void, Never>?
   private var setupDeviceStreamTask: Task<Void, Never>?
   private let wearables: WearablesInterface
+  private var deviceCompatibility: [DeviceIdentifier: Compatibility] = [:]
   private var compatibilityListenerTokens: [DeviceIdentifier: AnyListenerToken] = [:]
 
   init(wearables: WearablesInterface) {
@@ -86,24 +88,46 @@ class WearablesViewModel: ObservableObject {
     // Remove listeners for devices that are no longer present
     let deviceSet = Set(devices)
     compatibilityListenerTokens = compatibilityListenerTokens.filter { deviceSet.contains($0.key) }
+    deviceCompatibility = deviceCompatibility.filter { deviceSet.contains($0.key) }
+    updateFirmwareUpdateRequired()
 
     // Add listeners for new devices
     for deviceId in devices {
       guard compatibilityListenerTokens[deviceId] == nil else { continue }
       guard let device = wearables.deviceForIdentifier(deviceId) else { continue }
+      deviceCompatibility[deviceId] = device.compatibility()
+      updateFirmwareUpdateRequired()
 
       // Capture device name before the closure to avoid Sendable issues
       let deviceName = device.nameOrId()
       let token = device.addCompatibilityListener { [weak self] compatibility in
         guard let self else { return }
-        if compatibility == .deviceUpdateRequired {
-          Task { @MainActor in
-            self.showError("Device '\(deviceName)' requires an update to work with this app")
-          }
+        Task { @MainActor in
+          self.handleCompatibilityChange(
+            compatibility,
+            deviceId: deviceId,
+            deviceName: deviceName
+          )
         }
       }
       compatibilityListenerTokens[deviceId] = token
     }
+  }
+
+  private func handleCompatibilityChange(
+    _ compatibility: Compatibility,
+    deviceId: DeviceIdentifier,
+    deviceName: String
+  ) {
+    deviceCompatibility[deviceId] = compatibility
+    updateFirmwareUpdateRequired()
+    if compatibility == .deviceUpdateRequired {
+      showError("Device '\(deviceName)' requires a firmware update to work with this app.")
+    }
+  }
+
+  private func updateFirmwareUpdateRequired() {
+    requiresFirmwareUpdate = deviceCompatibility.values.contains(.deviceUpdateRequired)
   }
 
   func connectGlasses() {
@@ -128,6 +152,30 @@ class WearablesViewModel: ObservableObject {
       } catch {
         showError(error.localizedDescription)
       }
+    }
+  }
+
+  /// Deep-link into the Meta AI app's firmware update flow. Surface this when
+  /// `requiresFirmwareUpdate` becomes true (or a session emits
+  /// `DeviceSessionError.datAppOnTheGlassesUpdateRequired`).
+  func openFirmwareUpdate() async {
+    do {
+      try await wearables.openFirmwareUpdate()
+    } catch let error as NavigationError {
+      showError(error.description)
+    } catch {
+      showError(error.localizedDescription)
+    }
+  }
+
+  /// Deep-link into the DAT-on-glasses app update flow. New in DAT 0.8.
+  func openDATGlassesAppUpdate() async {
+    do {
+      try await wearables.openDATGlassesAppUpdate()
+    } catch let error as NavigationError {
+      showError(error.description)
+    } catch {
+      showError(error.localizedDescription)
     }
   }
 

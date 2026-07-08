@@ -23,6 +23,10 @@ struct NonStreamView: View {
   @State private var sheetHeight: CGFloat = 300
   @State private var showSettings = false
 
+  private var isUpdateRequired: Bool {
+    wearablesVM.requiresFirmwareUpdate || viewModel.requiresDATAppUpdate
+  }
+
   var body: some View {
     ZStack {
       AnimatedBackground()
@@ -114,10 +118,41 @@ struct NonStreamView: View {
           }
         }
 
+        if isUpdateRequired {
+          UpdateRequiredMessage(
+            showFirmwareUpdate: wearablesVM.requiresFirmwareUpdate,
+            showDATAppUpdate: viewModel.requiresDATAppUpdate
+          )
+        }
+
+        if wearablesVM.requiresFirmwareUpdate {
+          CustomButton(
+            title: "Update firmware",
+            style: .secondary,
+            isDisabled: false
+          ) {
+            Task {
+              await wearablesVM.openFirmwareUpdate()
+            }
+          }
+        }
+
+        if viewModel.requiresDATAppUpdate {
+          CustomButton(
+            title: "Update app on glasses",
+            style: .secondary,
+            isDisabled: false
+          ) {
+            Task {
+              await wearablesVM.openDATGlassesAppUpdate()
+            }
+          }
+        }
+
         CustomButton(
           title: "Start streaming",
           style: .primary,
-          isDisabled: !viewModel.hasActiveDevice
+          isDisabled: !viewModel.hasActiveDevice || isUpdateRequired
         ) {
           Task {
             await viewModel.handleStartStreaming()
@@ -209,5 +244,52 @@ struct TipItemView: View {
         .fixedSize(horizontal: false, vertical: true)
     }
     .frame(maxWidth: .infinity, alignment: .leading)
+  }
+}
+
+/// Amber warning banner shown when the glasses firmware or the DAT app on the
+/// glasses is out of date and must be updated before a session can start.
+struct UpdateRequiredMessage: View {
+  let showFirmwareUpdate: Bool
+  let showDATAppUpdate: Bool
+
+  private var title: String {
+    if showFirmwareUpdate && showDATAppUpdate {
+      return "Firmware and app update required"
+    } else if showFirmwareUpdate {
+      return "Firmware update required"
+    } else {
+      return "App update required"
+    }
+  }
+
+  private var body_text: String {
+    if showFirmwareUpdate && showDATAppUpdate {
+      return "Update the glasses firmware and the DAT app on your glasses to keep streaming."
+    } else if showFirmwareUpdate {
+      return "Your glasses firmware is too old for this version of the SDK. Update to continue."
+    } else {
+      return "The DAT app on your glasses needs an update before Lanterna can start a session."
+    }
+  }
+
+  var body: some View {
+    HStack(alignment: .top, spacing: 10) {
+      Image(systemName: "exclamationmark.triangle.fill")
+        .foregroundStyle(Color(red: 0.541, green: 0.294, blue: 0.0))
+      VStack(alignment: .leading, spacing: 4) {
+        Text(title)
+          .font(.system(size: 14, weight: .semibold))
+        Text(body_text)
+          .font(.system(size: 13))
+      }
+      .foregroundStyle(Color(red: 0.541, green: 0.294, blue: 0.0))
+      Spacer(minLength: 0)
+    }
+    .padding(12)
+    .background(
+      RoundedRectangle(cornerRadius: 10)
+        .fill(Color(red: 1.0, green: 0.957, blue: 0.839))
+    )
   }
 }

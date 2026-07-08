@@ -1,8 +1,12 @@
 {
-  "servers": {
-    "axiom": {
+  "mcpServers": {
+    "meta-wearables": {
       "command": "npx",
-      "args": ["-y", "axiom-mcp"]
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sse",
+        "https://mcp.developer.meta.com/wearables"
+      ]
     }
   }
 }
