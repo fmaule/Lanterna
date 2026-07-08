@@ -1,21 +1,16 @@
 import SwiftUI
 
-/// Compact capsule pill with a status dot and label, rendered on top of a
-/// `.ultraThinMaterial` background with a soft white stroke. When `isConnected`
-/// is true, the dot gets a subtle pulsing halo. Adapted from OpenVision.
-///
-/// The `(color:text:)` initializer preserves the call-site API of Lanterna's
-/// previous `StatusPill` (used in the Gemini / OpenClaw / WebRTC status bars)
-/// and derives `isConnected` from the color — green ⇒ live/connected.
+/// Compact capsule pill with a solid status dot and label on a dark translucent
+/// background. Preserves the pre-refresh visual — no pulsing halo, no
+/// glassmorphic material — which reads better than the OpenVision variant when
+/// several pills are stacked on the live camera feed.
 struct StatusPill: View {
   let text: String
   let color: Color
-  let isConnected: Bool
 
-  init(color: Color, text: String, isConnected: Bool? = nil) {
+  init(color: Color, text: String) {
     self.color = color
     self.text = text
-    self.isConnected = isConnected ?? (color == .green)
   }
 
   var body: some View {
@@ -23,40 +18,20 @@ struct StatusPill: View {
       Circle()
         .fill(color)
         .frame(width: 8, height: 8)
-        .overlay(
-          Circle()
-            .stroke(color.opacity(0.5), lineWidth: 2)
-            .scaleEffect(isConnected ? 1.5 : 1)
-            .opacity(isConnected ? 0 : 1)
-            .animation(
-              isConnected
-                ? .easeOut(duration: 1).repeatForever(autoreverses: false)
-                : .default,
-              value: isConnected
-            )
-        )
-
       Text(text)
-        .font(.caption)
-        .fontWeight(.medium)
+        .font(.system(size: 12, weight: .medium))
+        .foregroundColor(.white)
     }
-    .foregroundColor(.white.opacity(0.9))
     .padding(.horizontal, 12)
     .padding(.vertical, 6)
-    .background(
-      Capsule()
-        .fill(.ultraThinMaterial)
-        .overlay(
-          Capsule()
-            .stroke(Color.white.opacity(0.2), lineWidth: 1)
-        )
-    )
+    .background(Color.black.opacity(0.6))
+    .cornerRadius(16)
   }
 }
 
 #Preview {
   ZStack {
-    AnimatedBackground()
+    Color.gray.ignoresSafeArea()
     VStack(spacing: 12) {
       StatusPill(color: .green, text: "Gemini")
       StatusPill(color: .yellow, text: "Connecting…")
@@ -64,5 +39,4 @@ struct StatusPill: View {
       StatusPill(color: .gray, text: "Off")
     }
   }
-  .preferredColorScheme(.dark)
 }

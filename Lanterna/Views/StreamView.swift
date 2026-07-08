@@ -72,18 +72,12 @@ struct StreamView: View {
                 Image(systemName: "speaker.wave.2.fill")
                   .foregroundColor(.white)
                   .font(.system(size: 14))
-                WaveformVisualizer(isActive: geminiVM.isModelSpeaking, intensity: 0.6)
-                  .frame(width: 80, height: 24)
+                SpeakingIndicator()
               }
               .padding(.horizontal, 16)
               .padding(.vertical, 8)
-              .background(
-                Capsule()
-                  .fill(.ultraThinMaterial)
-                  .overlay(
-                    Capsule().stroke(Color.white.opacity(0.2), lineWidth: 1)
-                  )
-              )
+              .background(Color.black.opacity(0.5))
+              .cornerRadius(20)
             }
           }
           .padding(.bottom, 80)

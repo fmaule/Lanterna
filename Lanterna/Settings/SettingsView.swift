@@ -10,7 +10,7 @@ struct SettingsView: View {
 
   @State private var proactiveNotificationsEnabled: Bool = true
   @State private var showResetConfirmation = false
-  @State private var knownFaceNames: [String] = []
+  @State private var knownFacesCount: Int = 0
 
   // Cached status values so the trailing indicators refresh when we come back
   // from a sub-page (each sub-page saves onto SettingsManager directly).
@@ -24,13 +24,35 @@ struct SettingsView: View {
       Form {
         Section(header: Text("AI")) {
           NavigationLink {
-            GeminiSettingsView()
+            GeminiAPIKeySettingsView()
           } label: {
             settingsRow(
-              title: "Gemini",
-              systemImage: "sparkles",
-              trailingText: settings.geminiVoiceName,
+              title: "API Key",
+              systemImage: "key.fill",
+              trailingText: nil,
               warning: !geminiConfigured
+            )
+          }
+
+          NavigationLink {
+            GeminiVoiceSettingsView()
+          } label: {
+            settingsRow(
+              title: "Voice",
+              systemImage: "waveform",
+              trailingText: settings.geminiVoiceName,
+              warning: false
+            )
+          }
+
+          NavigationLink {
+            GeminiPromptSettingsView()
+          } label: {
+            settingsRow(
+              title: "Prompt",
+              systemImage: "text.quote",
+              trailingText: nil,
+              warning: false
             )
           }
         }
@@ -83,26 +105,26 @@ struct SettingsView: View {
           }
         }
 
+        if #available(iOS 18.0, *) {
+          Section(header: Text("Face Recognition")) {
+            NavigationLink {
+              FaceRecognitionSettingsView()
+            } label: {
+              settingsRow(
+                title: "Known Faces",
+                systemImage: "person.crop.circle.badge.checkmark",
+                trailingText: knownFacesCount > 0 ? "\(knownFacesCount)" : nil,
+                warning: false
+              )
+            }
+          }
+        }
+
         Section(header: Text("Notifications"), footer: Text("Receive proactive updates from OpenClaw (heartbeat, scheduled tasks) spoken through the glasses.")) {
           Toggle("Proactive Notifications", isOn: $proactiveNotificationsEnabled)
             .onChange(of: proactiveNotificationsEnabled) { _, newValue in
               settings.proactiveNotificationsEnabled = newValue
             }
-        }
-
-        if #available(iOS 18.0, *) {
-          Section(header: Text("Known Faces"), footer: Text("People remembered via voice command (\"remember this person as ...\"). Removing someone here means they'll need to be re-introduced.")) {
-            if knownFaceNames.isEmpty {
-              Text("No remembered faces yet.")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            } else {
-              ForEach(knownFaceNames, id: \.self) { name in
-                Text(name)
-              }
-              .onDelete(perform: deleteKnownFaces)
-            }
-          }
         }
 
         Section {
@@ -163,15 +185,7 @@ struct SettingsView: View {
     hermesConfigured = GeminiConfig.isHermesConfigured
     webrtcConfigured = !settings.webrtcSignalingURL.isEmpty
     if #available(iOS 18.0, *) {
-      knownFaceNames = FaceRecognitionStore.allNames()
+      knownFacesCount = FaceRecognitionStore.allNames().count
     }
-  }
-
-  @available(iOS 18.0, *)
-  private func deleteKnownFaces(at offsets: IndexSet) {
-    for index in offsets {
-      FaceRecognitionStore.forget(name: knownFaceNames[index])
-    }
-    knownFaceNames = FaceRecognitionStore.allNames()
   }
 }
